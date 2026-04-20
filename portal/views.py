@@ -1,3 +1,4 @@
+import logging
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.forms import UserCreationForm
@@ -8,6 +9,8 @@ from django.core.paginator import Paginator
 from django.db.models import Exists, OuterRef
 from core.models import Truck, Driver, Job
 from .forms import TruckForm, DriverForm, JobForm, AssignJobForm, UpdateStatusForm
+
+logger = logging.getLogger('core')
 
 
 def root_redirect(request):
@@ -26,7 +29,9 @@ def login_view(request):
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
+            logger.info(f'User {username} logged in via portal')
             return redirect('portal:dashboard')
+        logger.warning(f'Failed portal login attempt for username: {username}')
         messages.error(request, 'Invalid username or password. Please try again.')
 
     return render(request, 'portal/login.html')
@@ -34,6 +39,7 @@ def login_view(request):
 
 def logout_view(request):
     if request.method == 'POST':
+        logger.info(f'User {request.user.username} logged out')
         logout(request)
     return redirect('portal:login')
 
@@ -101,6 +107,7 @@ def truck_create(request):
     form = TruckForm(request.POST or None)
     if form.is_valid():
         truck = form.save()
+        logger.info(f'Truck {truck.registration_no} created via portal by {request.user.username}')
         messages.success(request, f'Truck {truck.registration_no} created successfully.')
         return redirect('portal:truck_list')
     return render(request, 'portal/trucks/form.html', {
@@ -116,6 +123,7 @@ def truck_edit(request, pk):
     form = TruckForm(request.POST or None, instance=truck)
     if form.is_valid():
         form.save()
+        logger.info(f'Truck {truck.registration_no} updated via portal by {request.user.username}')
         messages.success(request, f'Truck {truck.registration_no} updated successfully.')
         return redirect('portal:truck_list')
     return render(request, 'portal/trucks/form.html', {
@@ -136,6 +144,7 @@ def truck_delete(request, pk):
     if request.method == 'POST':
         reg = truck.registration_no
         truck.delete()
+        logger.info(f'Truck {reg} deleted via portal by {request.user.username}')
         messages.success(request, f'Truck {reg} deleted.')
         return redirect('portal:truck_list')
     return render(request, 'portal/trucks/confirm_delete.html', {'truck': truck})
@@ -162,6 +171,7 @@ def driver_create(request):
     form = DriverForm(request.POST or None)
     if form.is_valid():
         driver = form.save()
+        logger.info(f'Driver {driver.name} created via portal by {request.user.username}')
         messages.success(request, f'Driver {driver.name} created successfully.')
         return redirect('portal:driver_list')
     return render(request, 'portal/drivers/form.html', {
@@ -177,6 +187,7 @@ def driver_edit(request, pk):
     form = DriverForm(request.POST or None, instance=driver)
     if form.is_valid():
         form.save()
+        logger.info(f'Driver {driver.name} updated via portal by {request.user.username}')
         messages.success(request, f'Driver {driver.name} updated successfully.')
         return redirect('portal:driver_list')
     return render(request, 'portal/drivers/form.html', {
@@ -197,6 +208,7 @@ def driver_delete(request, pk):
     if request.method == 'POST':
         name = driver.name
         driver.delete()
+        logger.info(f'Driver {name} deleted via portal by {request.user.username}')
         messages.success(request, f'Driver {name} deleted.')
         return redirect('portal:driver_list')
     return render(request, 'portal/drivers/confirm_delete.html', {'driver': driver})
@@ -225,6 +237,7 @@ def job_create(request):
     form = JobForm(request.POST or None)
     if form.is_valid():
         job = form.save()
+        logger.info(f'Job #{job.id} created via portal by {request.user.username}')
         messages.success(request, f'Job #{job.id} created successfully.')
         return redirect('portal:job_detail', pk=job.pk)
     return render(request, 'portal/jobs/form.html', {
@@ -254,6 +267,7 @@ def job_edit(request, pk):
     form = JobForm(request.POST or None, instance=job)
     if form.is_valid():
         form.save()
+        logger.info(f'Job #{job.id} updated via portal by {request.user.username}')
         messages.success(request, f'Job #{job.id} updated successfully.')
         return redirect('portal:job_detail', pk=job.pk)
     return render(request, 'portal/jobs/form.html', {
@@ -274,6 +288,7 @@ def job_delete(request, pk):
     if request.method == 'POST':
         job_id = job.id
         job.delete()
+        logger.info(f'Job #{job_id} deleted via portal by {request.user.username}')
         messages.success(request, f'Job #{job_id} deleted.')
         return redirect('portal:job_list')
     return render(request, 'portal/jobs/confirm_delete.html', {'job': job})
@@ -296,11 +311,13 @@ def job_assign(request, pk):
 
     # Business rule: truck must be available
     if truck.status != 'available':
+        logger.warning(f'Portal: attempted to assign unavailable truck {truck.registration_no} to job #{pk} by {request.user.username}')
         messages.error(request, f'Truck {truck.registration_no} is no longer available.')
         return redirect('portal:job_detail', pk=pk)
 
     # Business rule: driver must not have an active job
     if Job.objects.filter(assigned_driver=driver, status__in=['pending', 'in_transit']).exists():
+        logger.warning(f'Portal: attempted to assign busy driver {driver.name} to job #{pk} by {request.user.username}')
         messages.error(request, f'Driver {driver.name} already has an active job.')
         return redirect('portal:job_detail', pk=pk)
 
@@ -312,6 +329,7 @@ def job_assign(request, pk):
     truck.status = 'in_transit'
     truck.save()
 
+    logger.info(f'Job #{pk} assigned to {driver.name} on truck {truck.registration_no} via portal by {request.user.username}')
     messages.success(request, f'Job #{pk} assigned to {driver.name} on truck {truck.registration_no}.')
     return redirect('portal:job_detail', pk=pk)
 
@@ -337,5 +355,6 @@ def job_update_status(request, pk):
         job.assigned_truck.status = 'available'
         job.assigned_truck.save()
 
+    logger.info(f'Job #{pk} status changed to {new_status} via portal by {request.user.username}')
     messages.success(request, f'Job #{pk} status changed from {old_status} to {new_status}.')
     return redirect('portal:job_detail', pk=pk)
