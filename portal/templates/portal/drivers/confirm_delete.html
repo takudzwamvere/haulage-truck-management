@@ -2,61 +2,25 @@
 
 {% block title %}Delete Driver{% endblock %}
 {% block page_title %}Delete Driver{% endblock %}
-{% block page_subtitle %}This action cannot be undone{% endblock %}
 
 {% block content %}
-<div class="max-w-md">
-  <div class="bg-white rounded-2xl border border-red-100 shadow-sm p-8">
-
-    <!-- Warning icon -->
-    <div class="flex items-center justify-center w-14 h-14 rounded-2xl bg-red-50 mb-6">
-      <svg class="w-7 h-7 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-      </svg>
+<div class="row">
+  <div class="col-md-6">
+    <div class="alert alert-danger border border-danger">
+      <h4>Warning: Permanent Deletion</h4>
+      <p>Are you sure you want to delete the driver <strong>{{ driver.name }}</strong>?</p>
+      <ul>
+        <li>License: {{ driver.license_no }}</li>
+        <li>Phone: {{ driver.phone_no }}</li>
+      </ul>
+      <p class="mb-0">Note: Jobs assigned to this driver will be unassigned.</p>
     </div>
-
-    <h2 class="text-lg font-semibold text-slate-800 mb-1">Delete this driver?</h2>
-    <p class="text-slate-500 text-sm mb-1">You are about to permanently delete:</p>
-
-    <!-- Driver info card -->
-    <div class="my-4 p-4 rounded-xl bg-slate-50 border border-slate-200 text-sm space-y-2">
-      <div class="flex items-center gap-3 pb-2 border-b border-slate-200">
-        <div class="flex items-center justify-center w-9 h-9 rounded-full bg-violet-100 text-violet-700 text-sm font-bold shrink-0">
-          {{ driver.name|first|upper }}
-        </div>
-        <span class="font-semibold text-slate-800">{{ driver.name }}</span>
-      </div>
-      <div class="flex justify-between pt-1">
-        <span class="text-slate-500">License No.</span>
-        <span class="font-mono text-slate-700 text-xs">{{ driver.license_no }}</span>
-      </div>
-      <div class="flex justify-between">
-        <span class="text-slate-500">Phone</span>
-        <span class="text-slate-700">{{ driver.phone_no }}</span>
-      </div>
-    </div>
-
-    <p class="text-xs text-red-500 mb-6">
-      Any jobs assigned to this driver will have their driver reference cleared.
-    </p>
 
     <form method="post">
       {% csrf_token %}
-      <div class="flex items-center gap-3">
-        <button type="submit"
-                class="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-sm
-                       font-semibold shadow-sm transition-colors active:scale-[.98]">
-          Yes, Delete Driver
-        </button>
-        <a href="{% url 'portal:driver_list' %}"
-           class="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm
-                  font-medium hover:bg-slate-50 transition-colors">
-          Cancel
-        </a>
-      </div>
+      <button type="submit" class="btn btn-danger">Confirm Delete</button>
+      <a href="{% url 'portal:driver_list' %}" class="btn btn-secondary">Cancel</a>
     </form>
-
   </div>
 </div>
 {% endblock %}

@@ -2,19 +2,9 @@ from django import forms
 from django.db.models import Exists, OuterRef
 from core.models import Truck, Driver, Job
 
-_INPUT = (
-    'w-full px-4 py-2.5 rounded-xl bg-white border border-slate-300 '
-    'text-slate-800 text-sm shadow-sm '
-    'focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent '
-    'transition-shadow'
-)
+_INPUT = 'form-control'
+_SELECT = 'form-select'
 
-_SELECT = (
-    'w-full px-4 py-2.5 rounded-xl bg-white border border-slate-300 '
-    'text-slate-800 text-sm shadow-sm cursor-pointer '
-    'focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent '
-    'transition-shadow'
-)
 
 
 class TruckForm(forms.ModelForm):
