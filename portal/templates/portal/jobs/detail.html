@@ -6,7 +6,9 @@
 {% block header_actions %}
   <a href="{% url 'portal:job_list' %}" class="btn btn-secondary">Back to Jobs</a>
   <a href="{% url 'portal:job_edit' job.pk %}" class="btn btn-outline-primary">Edit Job</a>
+  {% if request.user.is_superuser %}
   <a href="{% url 'portal:job_delete' job.pk %}" class="btn btn-outline-danger">Delete</a>
+  {% endif %}
 {% endblock %}
 
 {% block content %}

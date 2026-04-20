@@ -1,5 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.forms import UserCreationForm
+
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
@@ -34,6 +36,25 @@ def logout_view(request):
     if request.method == 'POST':
         logout(request)
     return redirect('portal:login')
+
+
+def register_view(request):
+    if request.user.is_authenticated:
+        return redirect('portal:dashboard')
+
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)
+            user.is_staff = True
+            user.save()
+            messages.success(request, 'Account created successfully! You can now log in.')
+            return redirect('portal:login')
+    else:
+        form = UserCreationForm()
+
+    return render(request, 'portal/register.html', {'form': form})
+
 
 
 @login_required
@@ -107,6 +128,10 @@ def truck_edit(request, pk):
 
 @login_required
 def truck_delete(request, pk):
+    if not request.user.is_superuser:
+        messages.error(request, 'You do not have permission to delete.')
+        return redirect('portal:truck_list')
+
     truck = get_object_or_404(Truck, pk=pk)
     if request.method == 'POST':
         reg = truck.registration_no
@@ -164,6 +189,10 @@ def driver_edit(request, pk):
 
 @login_required
 def driver_delete(request, pk):
+    if not request.user.is_superuser:
+        messages.error(request, 'You do not have permission to delete.')
+        return redirect('portal:driver_list')
+
     driver = get_object_or_404(Driver, pk=pk)
     if request.method == 'POST':
         name = driver.name
@@ -237,6 +266,10 @@ def job_edit(request, pk):
 
 @login_required
 def job_delete(request, pk):
+    if not request.user.is_superuser:
+        messages.error(request, 'You do not have permission to delete.')
+        return redirect('portal:job_list')
+
     job = get_object_or_404(Job, pk=pk)
     if request.method == 'POST':
         job_id = job.id

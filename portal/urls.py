@@ -10,6 +10,7 @@ urlpatterns = [
     # Stage 2  – auth
     path('login/',  views.login_view,  name='login'),
     path('logout/', views.logout_view, name='logout'),
+    path('register/', views.register_view, name='register'),
 
     # Stage 4  – trucks
     path('trucks/',                 views.truck_list,   name='truck_list'),
