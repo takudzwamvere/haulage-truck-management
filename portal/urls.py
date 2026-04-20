@@ -24,11 +24,11 @@ urlpatterns = [
     path('drivers/<int:pk>/delete/', views.driver_delete, name='driver_delete'),
 
     # Stage 6  – jobs
-    # path('jobs/',                    views.job_list,          name='job_list'),
-    # path('jobs/create/',             views.job_create,        name='job_create'),
-    # path('jobs/<int:pk>/',           views.job_detail,        name='job_detail'),
-    # path('jobs/<int:pk>/edit/',      views.job_edit,          name='job_edit'),
-    # path('jobs/<int:pk>/delete/',    views.job_delete,        name='job_delete'),
-    # path('jobs/<int:pk>/assign/',    views.job_assign,        name='job_assign'),
-    # path('jobs/<int:pk>/status/',    views.job_update_status, name='job_update_status'),
+    path('jobs/',                    views.job_list,          name='job_list'),
+    path('jobs/create/',             views.job_create,        name='job_create'),
+    path('jobs/<int:pk>/',           views.job_detail,        name='job_detail'),
+    path('jobs/<int:pk>/edit/',      views.job_edit,          name='job_edit'),
+    path('jobs/<int:pk>/delete/',    views.job_delete,        name='job_delete'),
+    path('jobs/<int:pk>/assign/',    views.job_assign,        name='job_assign'),
+    path('jobs/<int:pk>/status/',    views.job_update_status, name='job_update_status'),
 ]

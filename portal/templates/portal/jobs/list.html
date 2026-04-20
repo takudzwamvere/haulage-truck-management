@@ -1,0 +1,129 @@
+{% extends 'portal/base.html' %}
+
+{% block title %}Jobs{% endblock %}
+{% block page_title %}Jobs{% endblock %}
+{% block page_subtitle %}Manage delivery jobs and assignments{% endblock %}
+
+{% block header_actions %}
+  <a href="{% url 'portal:job_create' %}"
+     class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500
+            text-white text-sm font-semibold shadow-sm transition-colors">
+    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    New Job
+  </a>
+{% endblock %}
+
+{% block content %}
+
+<!-- Status filter tabs -->
+<div class="flex items-center gap-1 mb-5 bg-white border border-slate-200 rounded-xl p-1 w-fit shadow-sm">
+  {% for val, label in  status_tabs %}
+  <a href="{% if val %}?status={{ val }}{% else %}?{% endif %}"
+     class="px-4 py-1.5 rounded-lg text-xs font-semibold transition-colors
+            {% if status_filter == val %}bg-sky-600 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-700 hover:bg-slate-50{% endif %}">
+    {{ label }}
+  </a>
+  {% endfor %}
+</div>
+
+<div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+
+  {% if page_obj.object_list %}
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="border-b border-slate-100 bg-slate-50/70">
+        <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">ID</th>
+        <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Route</th>
+        <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Driver</th>
+        <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Truck</th>
+        <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+        <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for job in page_obj %}
+      <tr class="hover:bg-slate-50/50 transition-colors">
+        <td class="px-6 py-4 font-mono text-slate-400 text-xs">#{{ job.id }}</td>
+        <td class="px-6 py-4">
+          <p class="font-medium text-slate-700">{{ job.pick_up_location }}</p>
+          <p class="text-slate-400 text-xs flex items-center gap-1 mt-0.5">
+            <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            {{ job.delivery_location }}
+          </p>
+        </td>
+        <td class="px-6 py-4 text-slate-600 text-sm">{{ job.assigned_driver.name|default:"—" }}</td>
+        <td class="px-6 py-4 font-mono text-slate-600 text-xs">{{ job.assigned_truck.registration_no|default:"—" }}</td>
+        <td class="px-6 py-4">
+          {% if job.status == 'completed' %}
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Completed</span>
+          {% elif job.status == 'in_transit' %}
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-sky-100 text-sky-700"><span class="w-1.5 h-1.5 rounded-full bg-sky-500"></span>In Transit</span>
+          {% elif job.status == 'pending' %}
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>Pending</span>
+          {% else %}
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700"><span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>Cancelled</span>
+          {% endif %}
+        </td>
+        <td class="px-6 py-4 text-right">
+          <div class="inline-flex items-center gap-2">
+            <a href="{% url 'portal:job_detail' job.pk %}"
+               class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-sky-200
+                      text-xs font-medium text-sky-600 hover:bg-sky-50 transition-colors">
+              View
+            </a>
+            <a href="{% url 'portal:job_delete' job.pk %}"
+               class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200
+                      text-xs font-medium text-red-600 hover:bg-red-50 transition-colors">
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+              Delete
+            </a>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if page_obj.has_other_pages %}
+  <div class="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-slate-50/40">
+    <p class="text-xs text-slate-500">
+      Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+      &nbsp;·&nbsp; {{ page_obj.paginator.count }} job{{ page_obj.paginator.count|pluralize }}
+    </p>
+    <div class="inline-flex gap-1">
+      {% if page_obj.has_previous %}
+        <a href="?{% if status_filter %}status={{ status_filter }}&{% endif %}page={{ page_obj.previous_page_number }}"
+           class="px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-600 hover:bg-slate-100 transition-colors">← Prev</a>
+      {% endif %}
+      {% if page_obj.has_next %}
+        <a href="?{% if status_filter %}status={{ status_filter }}&{% endif %}page={{ page_obj.next_page_number }}"
+           class="px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-600 hover:bg-slate-100 transition-colors">Next →</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="flex flex-col items-center justify-center py-20 text-center">
+    <div class="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
+      <svg class="w-7 h-7 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+        <rect x="9" y="3" width="6" height="4" rx="1"/>
+      </svg>
+    </div>
+    <p class="text-slate-600 font-semibold">No jobs found</p>
+    <p class="text-slate-400 text-sm mt-1 mb-4">
+      {% if status_filter %}No jobs with status "{{ status_filter }}".{% else %}Create your first delivery job to get started.{% endif %}
+    </p>
+    {% if not status_filter %}
+    <a href="{% url 'portal:job_create' %}"
+       class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-sm font-semibold transition-colors">
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      New Job
+    </a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

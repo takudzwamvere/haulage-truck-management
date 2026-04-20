@@ -1,0 +1,59 @@
+{% extends 'portal/base.html' %}
+
+{% block title %}Jobs{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block page_subtitle %}{% if action == 'Edit' %}Update job details below{% else %}Fill in the details to create a new delivery job{% endif %}{% endblock %}
+
+{% block content %}
+<div class="max-w-xl">
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      {% for field in form %}
+      <div class="mb-5">
+        <label for="{{ field.id_for_label }}"
+               class="block text-sm font-medium text-slate-700 mb-1.5">
+          {{ field.label }}
+          {% if field.field.required %}<span class="text-red-400 ml-0.5">*</span>{% endif %}
+        </label>
+
+        {{ field }}
+
+        {% if field.help_text %}
+          <p class="mt-1 text-xs text-slate-400">{{ field.help_text }}</p>
+        {% endif %}
+
+        {% if field.errors %}
+          {% for error in field.errors %}
+            <p class="mt-1.5 text-xs text-red-600 flex items-center gap-1">
+              <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              {{ error }}
+            </p>
+          {% endfor %}
+        {% endif %}
+      </div>
+      {% endfor %}
+
+      {% if form.non_field_errors %}
+        <div class="mb-5 p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm">
+          {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+        </div>
+      {% endif %}
+
+      <div class="flex items-center gap-3 pt-2 border-t border-slate-100 mt-6">
+        <button type="submit"
+                class="px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-sm font-semibold
+                       shadow-sm transition-colors active:scale-[.98]">
+          {% if action == 'Edit' %}Save Changes{% else %}Create Job{% endif %}
+        </button>
+        <a href="{% if job %}{% url 'portal:job_detail' job.pk %}{% else %}{% url 'portal:job_list' %}{% endif %}"
+           class="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium
+                  hover:bg-slate-50 transition-colors">
+          Cancel
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

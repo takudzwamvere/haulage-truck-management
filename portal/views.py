@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Exists, OuterRef
 from core.models import Truck, Driver, Job
-from .forms import TruckForm, DriverForm
+from .forms import TruckForm, DriverForm, JobForm, AssignJobForm, UpdateStatusForm
 
 
 def root_redirect(request):
@@ -171,3 +171,138 @@ def driver_delete(request, pk):
         messages.success(request, f'Driver {name} deleted.')
         return redirect('portal:driver_list')
     return render(request, 'portal/drivers/confirm_delete.html', {'driver': driver})
+
+
+# ─────────────────────────────────────────
+# Jobs
+# ─────────────────────────────────────────
+
+@login_required
+def job_list(request):
+    status_filter = request.GET.get('status', '')
+    qs = Job.objects.select_related('assigned_truck', 'assigned_driver').order_by('-created_at')
+    if status_filter in ['pending', 'in_transit', 'completed', 'cancelled']:
+        qs = qs.filter(status=status_filter)
+    paginator = Paginator(qs, 10)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    return render(request, 'portal/jobs/list.html', {
+        'page_obj': page_obj,
+        'status_filter': status_filter,
+    })
+
+
+@login_required
+def job_create(request):
+    form = JobForm(request.POST or None)
+    if form.is_valid():
+        job = form.save()
+        messages.success(request, f'Job #{job.id} created successfully.')
+        return redirect('portal:job_detail', pk=job.pk)
+    return render(request, 'portal/jobs/form.html', {
+        'form': form,
+        'title': 'Create New Job',
+        'action': 'Create',
+    })
+
+
+@login_required
+def job_detail(request, pk):
+    job = get_object_or_404(
+        Job.objects.select_related('assigned_truck', 'assigned_driver'), pk=pk
+    )
+    assign_form = AssignJobForm() if job.status == 'pending' else None
+    status_form = UpdateStatusForm(initial={'status': job.status})
+    return render(request, 'portal/jobs/detail.html', {
+        'job': job,
+        'assign_form': assign_form,
+        'status_form': status_form,
+    })
+
+
+@login_required
+def job_edit(request, pk):
+    job = get_object_or_404(Job, pk=pk)
+    form = JobForm(request.POST or None, instance=job)
+    if form.is_valid():
+        form.save()
+        messages.success(request, f'Job #{job.id} updated successfully.')
+        return redirect('portal:job_detail', pk=job.pk)
+    return render(request, 'portal/jobs/form.html', {
+        'form': form,
+        'title': f'Edit Job #{job.id}',
+        'action': 'Edit',
+        'job': job,
+    })
+
+
+@login_required
+def job_delete(request, pk):
+    job = get_object_or_404(Job, pk=pk)
+    if request.method == 'POST':
+        job_id = job.id
+        job.delete()
+        messages.success(request, f'Job #{job_id} deleted.')
+        return redirect('portal:job_list')
+    return render(request, 'portal/jobs/confirm_delete.html', {'job': job})
+
+
+@login_required
+def job_assign(request, pk):
+    if request.method != 'POST':
+        return redirect('portal:job_detail', pk=pk)
+
+    job = get_object_or_404(Job, pk=pk)
+    form = AssignJobForm(request.POST)
+
+    if not form.is_valid():
+        messages.error(request, 'Please select both a truck and a driver.')
+        return redirect('portal:job_detail', pk=pk)
+
+    truck = form.cleaned_data['truck']
+    driver = form.cleaned_data['driver']
+
+    # Business rule: truck must be available
+    if truck.status != 'available':
+        messages.error(request, f'Truck {truck.registration_no} is no longer available.')
+        return redirect('portal:job_detail', pk=pk)
+
+    # Business rule: driver must not have an active job
+    if Job.objects.filter(assigned_driver=driver, status__in=['pending', 'in_transit']).exists():
+        messages.error(request, f'Driver {driver.name} already has an active job.')
+        return redirect('portal:job_detail', pk=pk)
+
+    job.assigned_truck = truck
+    job.assigned_driver = driver
+    job.status = 'in_transit'
+    job.save()
+
+    truck.status = 'in_transit'
+    truck.save()
+
+    messages.success(request, f'Job #{pk} assigned to {driver.name} on truck {truck.registration_no}.')
+    return redirect('portal:job_detail', pk=pk)
+
+
+@login_required
+def job_update_status(request, pk):
+    if request.method != 'POST':
+        return redirect('portal:job_detail', pk=pk)
+
+    job = get_object_or_404(Job, pk=pk)
+    form = UpdateStatusForm(request.POST)
+
+    if not form.is_valid():
+        messages.error(request, 'Invalid status selected.')
+        return redirect('portal:job_detail', pk=pk)
+
+    old_status = job.status
+    new_status = form.cleaned_data['status']
+    job.status = new_status
+    job.save()
+
+    if new_status in ['completed', 'cancelled'] and job.assigned_truck:
+        job.assigned_truck.status = 'available'
+        job.assigned_truck.save()
+
+    messages.success(request, f'Job #{pk} status changed from {old_status} to {new_status}.')
+    return redirect('portal:job_detail', pk=pk)

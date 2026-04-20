@@ -1,5 +1,6 @@
 from django import forms
-from core.models import Truck, Driver
+from django.db.models import Exists, OuterRef
+from core.models import Truck, Driver, Job
 
 _INPUT = (
     'w-full px-4 py-2.5 rounded-xl bg-white border border-slate-300 '
@@ -64,3 +65,69 @@ class DriverForm(forms.ModelForm):
             'license_no': 'License Number',
             'phone_no': 'Phone Number',
         }
+
+
+class JobForm(forms.ModelForm):
+    class Meta:
+        model = Job
+        fields = ['pick_up_location', 'delivery_location', 'cargo']
+        widgets = {
+            'pick_up_location': forms.TextInput(attrs={
+                'placeholder': 'e.g. Harare CBD',
+                'class': _INPUT,
+            }),
+            'delivery_location': forms.TextInput(attrs={
+                'placeholder': 'e.g. Bulawayo Depot',
+                'class': _INPUT,
+            }),
+            'cargo': forms.Textarea(attrs={
+                'placeholder': 'Describe the cargo being transported...',
+                'rows': 3,
+                'class': _INPUT,
+            }),
+        }
+        labels = {
+            'pick_up_location': 'Pickup Location',
+            'delivery_location': 'Delivery Location',
+            'cargo': 'Cargo Description',
+        }
+
+
+class AssignJobForm(forms.Form):
+    truck = forms.ModelChoiceField(
+        queryset=Truck.objects.none(),
+        widget=forms.Select(attrs={'class': _SELECT}),
+        label='Assign Truck',
+        empty_label='— Select available truck —',
+    )
+    driver = forms.ModelChoiceField(
+        queryset=Driver.objects.none(),
+        widget=forms.Select(attrs={'class': _SELECT}),
+        label='Assign Driver',
+        empty_label='— Select free driver —',
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        active_jobs = Job.objects.filter(
+            assigned_driver=OuterRef('pk'),
+            status__in=['pending', 'in_transit']
+        )
+        self.fields['truck'].queryset = Truck.objects.filter(status='available')
+        self.fields['driver'].queryset = Driver.objects.annotate(
+            has_active_job=Exists(active_jobs)
+        ).filter(has_active_job=False)
+
+
+class UpdateStatusForm(forms.Form):
+    STATUS_CHOICES = [
+        ('pending',    'Pending'),
+        ('in_transit', 'In Transit'),
+        ('completed',  'Completed'),
+        ('cancelled',  'Cancelled'),
+    ]
+    status = forms.ChoiceField(
+        choices=STATUS_CHOICES,
+        widget=forms.Select(attrs={'class': _SELECT}),
+        label='New Status',
+    )
