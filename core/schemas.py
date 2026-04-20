@@ -1,12 +1,18 @@
 from ninja import Schema
-from typing import Optional
+from typing import Optional, Literal
 from decimal import Decimal
 
 
 class TruckIn(Schema):
     registration_no: str
     capacity: Decimal
-    status: str = 'available'
+    status: Literal['available', 'in_transit', 'maintenance'] = 'available'
+
+
+class TruckPatch(Schema):
+    registration_no: Optional[str] = None
+    capacity: Optional[Decimal] = None
+    status: Optional[Literal['available', 'in_transit', 'maintenance']] = None
 
 
 class TruckOut(Schema):
@@ -20,6 +26,12 @@ class DriverIn(Schema):
     name: str
     license_no: str
     phone_no: str
+
+
+class DriverPatch(Schema):
+    name: Optional[str] = None
+    license_no: Optional[str] = None
+    phone_no: Optional[str] = None
 
 
 class DriverOut(Schema):
@@ -51,7 +63,7 @@ class AssignJob(Schema):
 
 
 class UpdateStatus(Schema):
-    status: str
+    status: Literal['pending', 'in_transit', 'completed', 'cancelled']
 
 class ErrorOut(Schema):
     detail: str

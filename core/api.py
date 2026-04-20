@@ -2,8 +2,8 @@ from ninja import Router
 from django.shortcuts import get_object_or_404
 from .models import Truck, Driver, Job
 from .schemas import (
-    TruckIn, TruckOut,
-    DriverIn, DriverOut,
+    TruckIn, TruckOut, TruckPatch,
+    DriverIn, DriverOut, DriverPatch,
     JobIn, JobOut,
     AssignJob, UpdateStatus,
     ErrorOut, LoginIn, TokenOut
@@ -53,10 +53,11 @@ def get_truck(request, truck_id: int):
 
 
 @truck_router.patch('/{truck_id}/', response=TruckOut)
-def update_truck(request, truck_id: int, payload: TruckIn):
+def update_truck(request, truck_id: int, payload: TruckPatch):
     truck = get_object_or_404(Truck, id=truck_id)
-    for attr, value in payload.dict().items():
-        setattr(truck, attr, value)
+    for attr, value in payload.model_dump().items():
+        if value is not None:
+            setattr(truck, attr, value)
     truck.save()
     logger.info(f'Truck {truck.registration_no} updated')
     return truck
@@ -91,10 +92,11 @@ def get_driver(request, driver_id: int):
 
 
 @driver_router.patch('/{driver_id}/', response=DriverOut)
-def update_driver(request, driver_id: int, payload: DriverIn):
+def update_driver(request, driver_id: int, payload: DriverPatch):
     driver = get_object_or_404(Driver, id=driver_id)
-    for attr, value in payload.dict().items():
-        setattr(driver, attr, value)
+    for attr, value in payload.model_dump().items():
+        if value is not None:
+            setattr(driver, attr, value)
     driver.save()
     logger.info(f'Driver {driver.name} updated')
     return driver
@@ -169,11 +171,6 @@ def assign_job(request, job_id: int, payload: AssignJob):
 @job_router.patch('/{job_id}/status/', response={200: JobOut, 400: ErrorOut})
 def update_job_status(request, job_id: int, payload: UpdateStatus):
     job = get_object_or_404(Job, id=job_id)
-
-    valid_statuses = ['pending', 'in_transit', 'completed', 'cancelled']
-    if payload.status not in valid_statuses:
-        logger.warning(f'Invalid status {payload.status} attempted on job {job_id}')
-        return 400, {'detail': f'Invalid status. Must be one of: {valid_statuses}'}
 
     old_status = job.status
     job.status = payload.status
