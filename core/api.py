@@ -6,17 +6,31 @@ from .schemas import (
     DriverIn, DriverOut,
     JobIn, JobOut,
     AssignJob, UpdateStatus,
-    ErrorOut
+    ErrorOut, LoginIn, TokenOut
 )
 from ninja.pagination import paginate, PageNumberPagination
 import logging
+from django.contrib.auth import authenticate
+from .auth import create_access_token, AuthBearer
 
 logger = logging.getLogger('core')
 
+auth_router = Router(tags=["Auth"])
 truck_router = Router(tags=["Trucks"])
 driver_router = Router(tags=["Drivers"])
 job_router = Router(tags=["Jobs"])
 
+#Auth
+
+@auth_router.post('/login/', response={200: TokenOut, 401: ErrorOut})
+def login(request, payload: LoginIn):
+    user = authenticate(username=payload.username, password=payload.password)
+    if not user:
+        logger.warning(f'Failed login attempt for username: {payload.username}')
+        return 401, {'detail': 'Invalid username or password'}
+    logger.info(f'User {payload.username} logged in')
+    token = create_access_token(user.id)
+    return 200, {'access_token': token, 'token_type': 'bearer'}
 
 # Trucks
 

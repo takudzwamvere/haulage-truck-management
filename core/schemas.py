@@ -55,3 +55,12 @@ class UpdateStatus(Schema):
 
 class ErrorOut(Schema):
     detail: str
+
+class LoginIn(Schema):
+    username: str
+    password: str
+
+
+class TokenOut(Schema):
+    access_token: str
+    token_type: str = 'bearer'
