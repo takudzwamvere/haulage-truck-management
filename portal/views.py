@@ -3,6 +3,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
+from django.db.models import Exists, OuterRef
 from core.models import Truck, Driver, Job
 from .forms import TruckForm, DriverForm
 
@@ -121,7 +122,11 @@ def truck_delete(request, pk):
 
 @login_required
 def driver_list(request):
-    qs = Driver.objects.order_by('id')
+    active_jobs = Job.objects.filter(
+        assigned_driver=OuterRef('pk'),
+        status__in=['pending', 'in_transit']
+    )
+    qs = Driver.objects.annotate(has_active_job=Exists(active_jobs)).order_by('id')
     paginator = Paginator(qs, 10)
     page_obj = paginator.get_page(request.GET.get('page'))
     return render(request, 'portal/drivers/list.html', {'page_obj': page_obj})

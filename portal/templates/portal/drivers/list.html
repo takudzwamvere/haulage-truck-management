@@ -49,22 +49,15 @@
 
         <!-- Active job indicator -->
         <td class="px-6 py-4">
-          {% with active=driver.jobs.filter(status__in=['pending','in_transit']).exists %}
-            {% if driver.jobs.all %}
-              {% for job in driver.jobs.all %}
-                {% if job.status == 'in_transit' or job.status == 'pending' %}
-                  <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
-                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Busy
-                  </span>
-                  {% break %}
-                {% endif %}
-              {% empty %}
-                <span class="text-slate-400 text-xs">—</span>
-              {% endfor %}
-            {% else %}
-              <span class="text-slate-400 text-xs">—</span>
-            {% endif %}
-          {% endwith %}
+          {% if driver.has_active_job %}
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Busy
+            </span>
+          {% else %}
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Free
+            </span>
+          {% endif %}
         </td>
 
         <td class="px-6 py-4 text-right">
