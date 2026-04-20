@@ -1,4 +1,5 @@
 import logging
+from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.forms import UserCreationForm
@@ -358,3 +359,21 @@ def job_update_status(request, pk):
     logger.info(f'Job #{pk} status changed to {new_status} via portal by {request.user.username}')
     messages.success(request, f'Job #{pk} status changed from {old_status} to {new_status}.')
     return redirect('portal:job_detail', pk=pk)
+
+@login_required
+def logs_view(request):
+    if not request.user.is_superuser:
+        messages.error(request, 'You do not have permission to view logs.')
+        return redirect('portal:dashboard')
+    
+    log_path = settings.BASE_DIR / 'logs/haulage.log'
+    lines = []
+    try:
+        with open(log_path, 'r') as f:
+            lines = f.readlines()
+        lines = list(reversed(lines))  # newest first
+    except FileNotFoundError:
+        lines = ['No log file found.']
+    
+    return render(request, 'portal/logs.html', {'lines': lines})
+

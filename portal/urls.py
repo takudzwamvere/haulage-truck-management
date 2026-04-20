@@ -32,4 +32,7 @@ urlpatterns = [
     path('jobs/<int:pk>/delete/',    views.job_delete,        name='job_delete'),
     path('jobs/<int:pk>/assign/',    views.job_assign,        name='job_assign'),
     path('jobs/<int:pk>/status/',    views.job_update_status, name='job_update_status'),
+    
+    # Logs
+    path('logs/',                    views.logs_view,         name='logs'),
 ]

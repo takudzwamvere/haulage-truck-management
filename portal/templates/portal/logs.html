@@ -1,0 +1,17 @@
+{% extends 'portal/base.html' %}
+
+{% block title %}System Logs{% endblock %}
+{% block page_title %}System Logs{% endblock %}
+{% block page_subtitle %}Live audit trails for the haulage platform{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body p-0 bg-dark text-light rounded-bottom">
+    <div class="p-3" style="max-height: 70vh; overflow-y: auto; font-family: monospace; font-size: 0.85rem;">
+      {% for line in lines %}
+        <div class="border-bottom border-secondary pb-1 mb-1" style="white-space: pre-wrap; word-break: break-all;">{{ line }}</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
