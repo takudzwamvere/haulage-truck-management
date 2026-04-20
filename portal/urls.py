@@ -12,10 +12,10 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),
 
     # Stage 4  – trucks
-    # path('trucks/',                  views.truck_list,   name='truck_list'),
-    # path('trucks/create/',           views.truck_create, name='truck_create'),
-    # path('trucks/<int:pk>/edit/',    views.truck_edit,   name='truck_edit'),
-    # path('trucks/<int:pk>/delete/',  views.truck_delete, name='truck_delete'),
+    path('trucks/',                 views.truck_list,   name='truck_list'),
+    path('trucks/create/',          views.truck_create, name='truck_create'),
+    path('trucks/<int:pk>/edit/',   views.truck_edit,   name='truck_edit'),
+    path('trucks/<int:pk>/delete/', views.truck_delete, name='truck_delete'),
 
     # Stage 5  – drivers
     # path('drivers/',                 views.driver_list,   name='driver_list'),
