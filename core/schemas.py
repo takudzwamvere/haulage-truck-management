@@ -1,6 +1,7 @@
 from ninja import Schema
-from typing import Optional, Literal
+from typing import Optional, Literal, Annotated
 from decimal import Decimal
+from pydantic import Field
 
 
 class TruckIn(Schema):
@@ -24,14 +25,14 @@ class TruckOut(Schema):
 
 class DriverIn(Schema):
     name: str
-    license_no: str
-    phone_no: str
+    license_no: Annotated[str, Field(pattern=r'^[A-Za-z0-9\s\-]+$')]
+    phone_no: Annotated[str, Field(pattern=r'^\+?[0-9\s\-]+$')]
 
 
 class DriverPatch(Schema):
     name: Optional[str] = None
-    license_no: Optional[str] = None
-    phone_no: Optional[str] = None
+    license_no: Optional[Annotated[str, Field(pattern=r'^[A-Za-z0-9\s\-]+$')]] = None
+    phone_no: Optional[Annotated[str, Field(pattern=r'^\+?[0-9\s\-]+$')]] = None
 
 
 class DriverOut(Schema):
