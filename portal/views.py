@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
 from core.models import Truck, Driver, Job
-from .forms import TruckForm
+from .forms import TruckForm, DriverForm
 
 
 def root_redirect(request):
@@ -113,3 +113,56 @@ def truck_delete(request, pk):
         messages.success(request, f'Truck {reg} deleted.')
         return redirect('portal:truck_list')
     return render(request, 'portal/trucks/confirm_delete.html', {'truck': truck})
+
+
+# ─────────────────────────────────────────
+# Drivers
+# ─────────────────────────────────────────
+
+@login_required
+def driver_list(request):
+    qs = Driver.objects.order_by('id')
+    paginator = Paginator(qs, 10)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    return render(request, 'portal/drivers/list.html', {'page_obj': page_obj})
+
+
+@login_required
+def driver_create(request):
+    form = DriverForm(request.POST or None)
+    if form.is_valid():
+        driver = form.save()
+        messages.success(request, f'Driver {driver.name} created successfully.')
+        return redirect('portal:driver_list')
+    return render(request, 'portal/drivers/form.html', {
+        'form': form,
+        'action': 'Create',
+        'title': 'Add New Driver',
+    })
+
+
+@login_required
+def driver_edit(request, pk):
+    driver = get_object_or_404(Driver, pk=pk)
+    form = DriverForm(request.POST or None, instance=driver)
+    if form.is_valid():
+        form.save()
+        messages.success(request, f'Driver {driver.name} updated successfully.')
+        return redirect('portal:driver_list')
+    return render(request, 'portal/drivers/form.html', {
+        'form': form,
+        'action': 'Edit',
+        'title': f'Edit Driver — {driver.name}',
+        'driver': driver,
+    })
+
+
+@login_required
+def driver_delete(request, pk):
+    driver = get_object_or_404(Driver, pk=pk)
+    if request.method == 'POST':
+        name = driver.name
+        driver.delete()
+        messages.success(request, f'Driver {name} deleted.')
+        return redirect('portal:driver_list')
+    return render(request, 'portal/drivers/confirm_delete.html', {'driver': driver})

@@ -18,10 +18,10 @@ urlpatterns = [
     path('trucks/<int:pk>/delete/', views.truck_delete, name='truck_delete'),
 
     # Stage 5  – drivers
-    # path('drivers/',                 views.driver_list,   name='driver_list'),
-    # path('drivers/create/',          views.driver_create, name='driver_create'),
-    # path('drivers/<int:pk>/edit/',   views.driver_edit,   name='driver_edit'),
-    # path('drivers/<int:pk>/delete/', views.driver_delete, name='driver_delete'),
+    path('drivers/',                 views.driver_list,   name='driver_list'),
+    path('drivers/create/',          views.driver_create, name='driver_create'),
+    path('drivers/<int:pk>/edit/',   views.driver_edit,   name='driver_edit'),
+    path('drivers/<int:pk>/delete/', views.driver_delete, name='driver_delete'),
 
     # Stage 6  – jobs
     # path('jobs/',                    views.job_list,          name='job_list'),
