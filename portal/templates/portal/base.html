@@ -137,7 +137,7 @@
           <p class="text-xs text-slate-400 truncate">Administrator</p>
         </div>
         <!-- Logout -->
-        <form method="post" action="#" class="shrink-0">  {# TODO Stage 2: replace # with {% url 'portal:logout' %} #}
+        <form method="post" action="{% url 'portal:logout' %}" class="shrink-0">
           {% csrf_token %}
           <button type="submit" title="Log out"
                   class="p-1.5 rounded-md text-slate-400 hover:text-white hover:bg-slate-700 transition-colors">

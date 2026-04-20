@@ -1,10 +1,34 @@
 from django.shortcuts import render, redirect
+from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 
 
 def root_redirect(request):
     if request.user.is_authenticated:
         return redirect('portal:dashboard')
+    return redirect('portal:login')
+
+
+def login_view(request):
+    if request.user.is_authenticated:
+        return redirect('portal:dashboard')
+
+    if request.method == 'POST':
+        username = request.POST.get('username', '').strip()
+        password = request.POST.get('password', '')
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            return redirect('portal:dashboard')
+        messages.error(request, 'Invalid username or password. Please try again.')
+
+    return render(request, 'portal/login.html')
+
+
+def logout_view(request):
+    if request.method == 'POST':
+        logout(request)
     return redirect('portal:login')
 
 
