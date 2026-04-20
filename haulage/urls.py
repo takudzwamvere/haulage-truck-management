@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 from ninja import NinjaAPI
 from core.api import truck_router, driver_router, job_router, auth_router
 from core.auth import AuthBearer
@@ -16,4 +16,5 @@ api.add_router('/jobs/', job_router, auth=auth)
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', api.urls),
+    path('', include('portal.urls')),
 ]
