@@ -1,7 +1,8 @@
 from django.db import models
 from django.core.validators import RegexValidator
 
-#Regex logic for licenses and phone number
+# regex validators for the models
+
 
 alphanumeric = RegexValidator(
     regex=r'^[A-Za-z0-9\s\-]+$',
@@ -12,7 +13,6 @@ numeric = RegexValidator(
     regex=r'^\+?[0-9\s\-]+$',
     message='Only numbers'
 )
-# Models
 class Driver(models.Model):
     name = models.CharField(max_length=255)
     license_no = models.CharField(max_length=255, unique=True, validators=[alphanumeric])
@@ -33,7 +33,7 @@ class Truck(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='available')
 
     def __str__(self):
-        return f"{self.registration_no} has a capacity of {self.capacity} and is {self.status}"
+        return f"{self.registration_no} - {self.status}"
     
 class Job(models.Model):
     STATUS_CHOICES = [
@@ -53,4 +53,4 @@ class Job(models.Model):
     modified_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Job {self.id} ==> {self.pick_up_location} to {self.delivery_location} with status {self.status}"
+        return f"Job {self.id} ({self.status})"

@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Optional
+
 from jose import jwt, JWTError
 from django.contrib.auth.models import User
 from ninja.security import HttpBearer
@@ -12,7 +12,7 @@ ALGORITHM = 'HS256'
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 
-def create_access_token(user_id: int) -> str:
+def create_access_token(user_id):
     
     expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     payload = {
@@ -22,7 +22,7 @@ def create_access_token(user_id: int) -> str:
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
-def decode_access_token(token: str) -> Optional[int]:
+def decode_access_token(token):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return int(payload.get('sub'))
@@ -31,7 +31,7 @@ def decode_access_token(token: str) -> Optional[int]:
 
 
 class AuthBearer(HttpBearer):
-    def authenticate(self, request, token: str):
+    def authenticate(self, request, token):
         user_id = decode_access_token(token)
         if not user_id:
             raise HttpError(401, 'Invalid or expired token')

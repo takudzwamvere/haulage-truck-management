@@ -91,10 +91,6 @@ def dashboard(request):
     return render(request, 'portal/dashboard.html', context)
 
 
-# ─────────────────────────────────────────
-# Trucks
-# ─────────────────────────────────────────
-
 @login_required
 def truck_list(request):
     qs = Truck.objects.order_by('id')
@@ -150,10 +146,6 @@ def truck_delete(request, pk):
         return redirect('portal:truck_list')
     return render(request, 'portal/trucks/confirm_delete.html', {'truck': truck})
 
-
-# ─────────────────────────────────────────
-# Drivers
-# ─────────────────────────────────────────
 
 @login_required
 def driver_list(request):
@@ -214,10 +206,6 @@ def driver_delete(request, pk):
         return redirect('portal:driver_list')
     return render(request, 'portal/drivers/confirm_delete.html', {'driver': driver})
 
-
-# ─────────────────────────────────────────
-# Jobs
-# ─────────────────────────────────────────
 
 @login_required
 def job_list(request):
@@ -310,13 +298,13 @@ def job_assign(request, pk):
     truck = form.cleaned_data['truck']
     driver = form.cleaned_data['driver']
 
-    # Business rule: truck must be available
+    # make sure the truck is actually available
     if truck.status != 'available':
         logger.warning(f'Portal: attempted to assign unavailable truck {truck.registration_no} to job #{pk} by {request.user.username}')
         messages.error(request, f'Truck {truck.registration_no} is no longer available.')
         return redirect('portal:job_detail', pk=pk)
 
-    # Business rule: driver must not have an active job
+    # don't assign a driver who is already on a run
     if Job.objects.filter(assigned_driver=driver, status__in=['pending', 'in_transit']).exists():
         logger.warning(f'Portal: attempted to assign busy driver {driver.name} to job #{pk} by {request.user.username}')
         messages.error(request, f'Driver {driver.name} already has an active job.')

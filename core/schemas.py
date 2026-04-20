@@ -1,5 +1,5 @@
 from ninja import Schema
-from typing import Optional, Literal, Annotated
+from typing import Literal, Annotated
 from decimal import Decimal
 from pydantic import Field
 
@@ -11,9 +11,9 @@ class TruckIn(Schema):
 
 
 class TruckPatch(Schema):
-    registration_no: Optional[str] = None
-    capacity: Optional[Decimal] = None
-    status: Optional[Literal['available', 'in_transit', 'maintenance']] = None
+    registration_no: str | None = None
+    capacity: Decimal | None = None
+    status: Literal['available', 'in_transit', 'maintenance'] | None = None
 
 
 class TruckOut(Schema):
@@ -30,9 +30,9 @@ class DriverIn(Schema):
 
 
 class DriverPatch(Schema):
-    name: Optional[str] = None
-    license_no: Optional[Annotated[str, Field(pattern=r'^[A-Za-z0-9\s\-]+$')]] = None
-    phone_no: Optional[Annotated[str, Field(pattern=r'^\+?[0-9\s\-]+$')]] = None
+    name: str | None = None
+    license_no: Annotated[str, Field(pattern=r'^[A-Za-z0-9\s\-]+$')] | None = None
+    phone_no: Annotated[str, Field(pattern=r'^\+?[0-9\s\-]+$')] | None = None
 
 
 class DriverOut(Schema):
@@ -54,8 +54,8 @@ class JobOut(Schema):
     delivery_location: str
     cargo: str
     status: str
-    assigned_truck: Optional[TruckOut] = None
-    assigned_driver: Optional[DriverOut] = None
+    assigned_truck: TruckOut | None = None
+    assigned_driver: DriverOut | None = None
 
 
 class AssignJob(Schema):

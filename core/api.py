@@ -20,8 +20,6 @@ truck_router = Router(tags=["Trucks"])
 driver_router = Router(tags=["Drivers"])
 job_router = Router(tags=["Jobs"])
 
-#Auth
-
 @auth_router.post('/login/', response={200: TokenOut, 401: ErrorOut})
 def login(request, payload: LoginIn):
     user = authenticate(username=payload.username, password=payload.password)
@@ -31,8 +29,6 @@ def login(request, payload: LoginIn):
     logger.info(f'User {payload.username} logged in')
     token = create_access_token(user.id)
     return 200, {'access_token': token, 'token_type': 'bearer'}
-
-# Trucks
 
 @truck_router.get('/', response=list[TruckOut])
 @paginate(PageNumberPagination, page_size=10)
@@ -71,8 +67,6 @@ def delete_truck(request, truck_id: int):
     return {'success': True}
 
 
-# Drivers
-
 @driver_router.get('/', response=list[DriverOut])
 @paginate(PageNumberPagination, page_size=10)
 def list_drivers(request):
@@ -110,8 +104,6 @@ def delete_driver(request, driver_id: int):
     return {'success': True}
 
 
-# Jobs
-
 @job_router.get('/', response=list[JobOut])
 @paginate(PageNumberPagination, page_size=10)
 def list_jobs(request):
@@ -121,7 +113,7 @@ def list_jobs(request):
 @job_router.post('/', response=JobOut)
 def create_job(request, payload: JobIn):
     job = Job.objects.create(**payload.dict())
-    logger.info(f'Job {job.id} created from {job.pick_up_location} to {job.delivery_location}')
+    logger.info(f'Job {job.id} created')
     return job
 
 
@@ -164,7 +156,7 @@ def assign_job(request, job_id: int, payload: AssignJob):
     truck.status = 'in_transit'
     truck.save()
 
-    logger.info(f'Job {job_id} assigned to truck {truck.registration_no} and driver {driver.name}')
+    logger.info(f'Job assigned')
     return job
 
 
@@ -181,5 +173,5 @@ def update_job_status(request, job_id: int, payload: UpdateStatus):
             job.assigned_truck.status = 'available'
             job.assigned_truck.save()
 
-    logger.info(f'Job {job_id} status changed from {old_status} to {payload.status}')
+    logger.info(f'Job {job_id} status updated')
     return job

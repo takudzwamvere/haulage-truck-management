@@ -99,6 +99,7 @@ class AssignJobForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # grabbing jobs that the driver is currently assigned to (using OuterRef so we can check it in the subquery)
         active_jobs = Job.objects.filter(
             assigned_driver=OuterRef('pk'),
             status__in=['pending', 'in_transit']
