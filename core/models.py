@@ -54,3 +54,14 @@ class Job(models.Model):
 
     def __str__(self):
         return f"Job {self.id} ({self.status})"
+
+class AuditLog(models.Model):
+    timestamp = models.DateTimeField(auto_now_add=True)
+    user = models.CharField(max_length=255)
+    action = models.CharField(max_length=500)
+
+    class Meta:
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        return f"[{self.timestamp}] {self.user}: {self.action}"
