@@ -25,9 +25,7 @@
             <li class="nav-item"><a class="nav-link" href="{% url 'portal:truck_list' %}">Trucks</a></li>
             <li class="nav-item"><a class="nav-link" href="{% url 'portal:driver_list' %}">Drivers</a></li>
             <li class="nav-item"><a class="nav-link" href="{% url 'portal:job_list' %}">Jobs</a></li>
-            {% if request.user.is_superuser %}
-            <li class="nav-item"><a class="nav-link text-warning" href="{% url 'portal:logs' %}">Logs</a></li>
-            {% endif %}
+            <li class="nav-item"><a class="nav-link {% if request.user.is_superuser %}text-warning{% endif %}" href="{% url 'portal:logs' %}">Logs</a></li>
           </ul>
           <form class="d-flex" action="{% url 'portal:logout' %}" method="post">
             {% csrf_token %}

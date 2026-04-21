@@ -1,8 +1,8 @@
 {% extends 'portal/base.html' %}
 
-{% block title %}System Logs{% endblock %}
-{% block page_title %}System Logs{% endblock %}
-{% block page_subtitle %}Live audit trails for the haulage platform{% endblock %}
+{% block title %}{% if request.user.is_superuser %}System Logs{% else %}My Activity{% endif %}{% endblock %}
+{% block page_title %}{% if request.user.is_superuser %}System Logs{% else %}My Activity{% endif %}{% endblock %}
+{% block page_subtitle %}{% if request.user.is_superuser %}Live audit trails for the haulage platform{% else %}Your recent actions on the platform{% endif %}{% endblock %}
 
 {% block content %}
 <div class="card">
