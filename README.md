@@ -3,7 +3,7 @@
 A full-stack web application for managing haulage trucks, drivers, and job assignments. Built with Django and PostgreSQL, with a REST API powered by Django Ninja.
 
 **Live demo:** [haulagetrucks.lol](https://haulagetrucks.lol)
-
+Just a little extra something, hosted on a Hetzner VPS using Dokploy which deploys docker containers like a charm
 ---
 
 ## Tech Stack
@@ -25,16 +25,25 @@ docker-compose up --build
 ```
 
 Then visit:
-- **Portal:** http://localhost:8000
-- **API docs:** http://localhost:8000/api/docs
+- **Portal:** http://localhost:8000 or https://haulagetrucks.lol
+- **API docs:** http://localhost:8000/api/docs or https://haulagetrucks.lol/api/docs
 
 Create a superuser to log in:
 
 ```bash
 docker-compose exec web python manage.py createsuperuser
 ```
+for the live demo, the log in for adim are:
+root
+password
 
+You can see all logs and can delete records, something regular users cant do
 ---
+##Auth
+
+Frontend auth is simple enough but for the Ninja docs portal, you will have log in through the Auth post method, enter your details and the response is a key you copy and then click authorize button and paste it in the pop up box to log in.
+
+Pagination was implemented here but not in the frontend, might be implemented by the time you see this
 
 ## Testing the API
 
