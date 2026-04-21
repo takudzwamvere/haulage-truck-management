@@ -95,6 +95,7 @@ DATABASES = {
 AUTH_PASSWORD_VALIDATORS = []
 
 # Logging
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -109,15 +110,10 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
-        'file': {
-            'class': 'logging.FileHandler',
-            'filename': BASE_DIR / 'logs/haulage.log',
-            'formatter': 'verbose',
-        },
     },
     'loggers': {
         'core': {
-            'handlers': ['console', 'file'],
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': False,
         },
