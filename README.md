@@ -86,14 +86,6 @@ You`re in. If you fail, try again
 
 Pagination was implemented here but not in the frontend, might be implemented by the time you see this
 
-## Testing the API
-
-1. Visit http://localhost:8000/api/docs
-2. Use `POST /api/auth/login/` with your credentials
-3. Copy the `access_token` from the response
-4. Click **Authorize** at the top right and enter `Bearer your_token_here`
-5. All endpoints are now unlocked
-
 ---
 
 ## Running Tests
