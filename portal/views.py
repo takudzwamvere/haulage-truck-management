@@ -353,15 +353,24 @@ def logs_view(request):
     if not request.user.is_superuser:
         messages.error(request, 'You do not have permission to view logs.')
         return redirect('portal:dashboard')
-    
-    log_path = settings.BASE_DIR / 'logs/haulage.log'
+
+    recent_jobs = Job.objects.select_related(
+        'assigned_truck', 'assigned_driver'
+    ).order_by('-modified_at')[:100]
+
     lines = []
-    try:
-        with open(log_path, 'r') as f:
-            lines = f.readlines()
-        lines = list(reversed(lines))  # newest first
-    except FileNotFoundError:
-        lines = ['No log file found.']
-    
+    for job in recent_jobs:
+        truck = job.assigned_truck.registration_no if job.assigned_truck else 'Unassigned'
+        driver = job.assigned_driver.name if job.assigned_driver else 'Unassigned'
+        lines.append(
+            f"[{job.modified_at.strftime('%Y-%m-%d %H:%M:%S')}] "
+            f"Job #{job.id} | Status: {job.status.upper()} | "
+            f"Route: {job.pick_up_location} → {job.delivery_location} | "
+            f"Truck: {truck} | Driver: {driver}"
+        )
+
+    if not lines:
+        lines = ['No activity recorded yet.']
+
     return render(request, 'portal/logs.html', {'lines': lines})
 
