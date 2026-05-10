@@ -7,6 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Exists, OuterRef
+from django.db import transaction
 from core.models import Truck, Driver, Job, AuditLog
 from .forms import TruckForm, DriverForm, JobForm, AssignJobForm, UpdateStatusForm
 
@@ -55,9 +56,7 @@ def register_view(request):
     if request.method == 'POST':
         form = UserCreationForm(request.POST)
         if form.is_valid():
-            user = form.save(commit=False)
-            user.is_staff = True
-            user.save()
+            user = form.save()
             audit(user.username, 'Account registered')
             messages.success(request, 'Account created successfully! You can now log in.')
             return redirect('portal:login')
@@ -291,26 +290,29 @@ def job_assign(request, pk):
         messages.error(request, 'Please select both a truck and a driver.')
         return redirect('portal:job_detail', pk=pk)
 
-    truck = form.cleaned_data['truck']
-    driver = form.cleaned_data['driver']
+    with transaction.atomic():
+        # Re-fetch with lock to prevent race conditions
+        truck = Truck.objects.select_for_update().get(pk=form.cleaned_data['truck'].pk)
+        driver = Driver.objects.select_for_update().get(pk=form.cleaned_data['driver'].pk)
+        locked_job = Job.objects.select_for_update().get(pk=pk)
 
-    if truck.status != 'available':
-        audit(request.user, f'Attempted to assign unavailable truck {truck.registration_no} to job #{pk}')
-        messages.error(request, f'Truck {truck.registration_no} is no longer available.')
-        return redirect('portal:job_detail', pk=pk)
+        if truck.status != 'available':
+            audit(request.user, f'Attempted to assign unavailable truck {truck.registration_no} to job #{pk}')
+            messages.error(request, f'Truck {truck.registration_no} is no longer available.')
+            return redirect('portal:job_detail', pk=pk)
 
-    if Job.objects.filter(assigned_driver=driver, status__in=['pending', 'in_transit']).exists():
-        audit(request.user, f'Attempted to assign busy driver {driver.name} to job #{pk}')
-        messages.error(request, f'Driver {driver.name} already has an active job.')
-        return redirect('portal:job_detail', pk=pk)
+        if Job.objects.filter(assigned_driver=driver, status__in=['pending', 'in_transit']).exists():
+            audit(request.user, f'Attempted to assign busy driver {driver.name} to job #{pk}')
+            messages.error(request, f'Driver {driver.name} already has an active job.')
+            return redirect('portal:job_detail', pk=pk)
 
-    job.assigned_truck = truck
-    job.assigned_driver = driver
-    job.status = 'in_transit'
-    job.save()
+        locked_job.assigned_truck = truck
+        locked_job.assigned_driver = driver
+        locked_job.status = 'in_transit'
+        locked_job.save()
 
-    truck.status = 'in_transit'
-    truck.save()
+        truck.status = 'in_transit'
+        truck.save()
 
     audit(request.user, f'Assigned job #{pk} to {driver.name} on truck {truck.registration_no}')
     messages.success(request, f'Job #{pk} assigned to {driver.name} on truck {truck.registration_no}.')
@@ -329,14 +331,19 @@ def job_update_status(request, pk):
         messages.error(request, 'Invalid status selected.')
         return redirect('portal:job_detail', pk=pk)
 
-    old_status = job.status
     new_status = form.cleaned_data['status']
-    job.status = new_status
-    job.save()
+    old_status = job.status
 
-    if new_status in ['completed', 'cancelled'] and job.assigned_truck:
-        job.assigned_truck.status = 'available'
-        job.assigned_truck.save()
+    with transaction.atomic():
+        locked_job = Job.objects.select_for_update().get(pk=pk)
+        
+        locked_job.status = new_status
+        locked_job.save()
+
+        if new_status in ['completed', 'cancelled'] and locked_job.assigned_truck:
+            truck = Truck.objects.select_for_update().get(pk=locked_job.assigned_truck.pk)
+            truck.status = 'available'
+            truck.save()
 
     audit(request.user, f'Changed job #{pk} status from {old_status} to {new_status}')
     messages.success(request, f'Job #{pk} status changed from {old_status} to {new_status}.')

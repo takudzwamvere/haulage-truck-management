@@ -1,5 +1,6 @@
 from ninja import Router
 from django.shortcuts import get_object_or_404
+from django.db import transaction
 from .models import Truck, Driver, Job
 from .schemas import (
     TruckIn, TruckOut, TruckPatch,
@@ -132,29 +133,31 @@ def delete_job(request, job_id: int):
 
 @job_router.post('/{job_id}/assign/', response={200: JobOut, 400: ErrorOut})
 def assign_job(request, job_id: int, payload: AssignJob):
-    job = get_object_or_404(Job, id=job_id)
-    truck = get_object_or_404(Truck, id=payload.truck_id)
-    driver = get_object_or_404(Driver, id=payload.driver_id)
+    with transaction.atomic():
+        # Fetch with lock to prevent race conditions
+        job = get_object_or_404(Job.objects.select_for_update(), id=job_id)
+        truck = get_object_or_404(Truck.objects.select_for_update(), id=payload.truck_id)
+        driver = get_object_or_404(Driver.objects.select_for_update(), id=payload.driver_id)
 
-    if truck.status != 'available':
-        logger.warning(f'Attempted to assign unavailable truck {truck.registration_no} to job {job_id}')
-        return 400, {'detail': f'Truck {truck.registration_no} is not available. Current status: {truck.status}'}
+        if truck.status != 'available':
+            logger.warning(f'Attempted to assign unavailable truck {truck.registration_no} to job {job_id}')
+            return 400, {'detail': f'Truck {truck.registration_no} is not available. Current status: {truck.status}'}
 
-    active_job = Job.objects.filter(
-        assigned_driver=driver,
-        status__in=['pending', 'in_transit']
-    ).exists()
-    if active_job:
-        logger.warning(f'Attempted to assign busy driver {driver.name} to job {job_id}')
-        return 400, {'detail': f'Driver {driver.name} already has an active job'}
+        active_job = Job.objects.filter(
+            assigned_driver=driver,
+            status__in=['pending', 'in_transit']
+        ).exists()
+        if active_job:
+            logger.warning(f'Attempted to assign busy driver {driver.name} to job {job_id}')
+            return 400, {'detail': f'Driver {driver.name} already has an active job'}
 
-    job.assigned_truck = truck
-    job.assigned_driver = driver
-    job.status = 'in_transit'
-    job.save()
+        job.assigned_truck = truck
+        job.assigned_driver = driver
+        job.status = 'in_transit'
+        job.save()
 
-    truck.status = 'in_transit'
-    truck.save()
+        truck.status = 'in_transit'
+        truck.save()
 
     logger.info(f'Job assigned')
     return job
@@ -162,16 +165,18 @@ def assign_job(request, job_id: int, payload: AssignJob):
 
 @job_router.patch('/{job_id}/status/', response={200: JobOut, 400: ErrorOut})
 def update_job_status(request, job_id: int, payload: UpdateStatus):
-    job = get_object_or_404(Job, id=job_id)
+    with transaction.atomic():
+        job = get_object_or_404(Job.objects.select_for_update(), id=job_id)
 
-    old_status = job.status
-    job.status = payload.status
-    job.save()
+        old_status = job.status
+        job.status = payload.status
+        job.save()
 
-    if payload.status in ['completed', 'cancelled']:
-        if job.assigned_truck:
-            job.assigned_truck.status = 'available'
-            job.assigned_truck.save()
+        if payload.status in ['completed', 'cancelled']:
+            if job.assigned_truck:
+                truck = Truck.objects.select_for_update().get(id=job.assigned_truck.id)
+                truck.status = 'available'
+                truck.save()
 
     logger.info(f'Job {job_id} status updated')
     return job
