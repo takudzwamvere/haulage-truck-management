@@ -4,42 +4,46 @@
 {% block page_title %}{{ title }}{% endblock %}
 
 {% block content %}
-<div class="row">
-  <div class="col-md-6">
-    <div class="card">
-      <div class="card-body">
-        <form method="post" novalidate>
-          {% csrf_token %}
+<div class="max-w-2xl mx-auto mt-8">
+  <div class="bg-white shadow sm:rounded-lg">
+    <div class="px-4 py-5 sm:p-6">
+      <form method="post" novalidate>
+        {% csrf_token %}
 
+        <div class="space-y-6">
           {% for field in form %}
-          <div class="mb-3">
-            <label for="{{ field.id_for_label }}" class="form-label">
-              {{ field.label }} {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
+          <div>
+            <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700">
+              {{ field.label }} {% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
             </label>
-            {{ field }}
+            <div class="mt-1">
+              {{ field }}
+            </div>
             {% if field.help_text %}
-              <div class="form-text">{{ field.help_text }}</div>
+              <p class="mt-2 text-sm text-gray-500">{{ field.help_text }}</p>
             {% endif %}
             {% if field.errors %}
-              <div class="text-danger mt-1 small">
+              <div class="mt-1 text-sm text-red-600">
                 {% for error in field.errors %}{{ error }}<br>{% endfor %}
               </div>
             {% endif %}
           </div>
           {% endfor %}
+        </div>
 
-          {% if form.non_field_errors %}
-            <div class="alert alert-danger">
+        {% if form.non_field_errors %}
+          <div class="mt-4 rounded-md bg-red-50 p-4">
+            <div class="text-sm text-red-700">
               {% for error in form.non_field_errors %}{{ error }}<br>{% endfor %}
             </div>
-          {% endif %}
-
-          <div class="mt-4">
-            <button type="submit" class="btn btn-primary">Save Changes</button>
-            <a href="{% url 'portal:truck_list' %}" class="btn btn-secondary">Cancel</a>
           </div>
-        </form>
-      </div>
+        {% endif %}
+
+        <div class="mt-6 flex items-center space-x-3">
+          <button type="submit" class="inline-flex justify-center rounded-md border border-transparent bg-blue-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">Save Changes</button>
+          <a href="{% url 'portal:truck_list' %}" class="inline-flex justify-center rounded-md border border-gray-300 bg-white py-2 px-4 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">Cancel</a>
+        </div>
+      </form>
     </div>
   </div>
 </div>

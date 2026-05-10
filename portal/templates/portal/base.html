@@ -4,64 +4,96 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Truck Management{% endblock %}</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <script defer src="https://analytics.takudzwamvere.com/script.js" data-website-id="31c3b9fb-5cee-405b-bc02-2aef620ae3ba"></script>
 </head>
-<body class="bg-light">
+<body class="bg-gray-100 text-gray-900 font-sans antialiased">
 
 {% if user.is_authenticated %}
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
-      <div class="container">
-        <a class="navbar-brand" href="{% url 'portal:dashboard' %}">Haulage System</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarContent">
-          <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-            <li class="nav-item"><a class="nav-link" href="{% url 'portal:dashboard' %}">Dashboard</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'portal:truck_list' %}">Trucks</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'portal:driver_list' %}">Drivers</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'portal:job_list' %}">Jobs</a></li>
-            <li class="nav-item"><a class="nav-link {% if request.user.is_superuser %}text-warning{% endif %}" href="{% url 'portal:logs' %}">Logs</a></li>
-          </ul>
-          <form class="d-flex align-items-center mt-3 mt-lg-0" action="{% url 'portal:logout' %}" method="post">
+    <nav x-data="{ open: false }" class="bg-gray-900 shadow mb-6">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16">
+          <div class="flex items-center">
+            <a class="text-white font-bold text-xl tracking-tight" href="{% url 'portal:dashboard' %}">Haulage System</a>
+            <div class="hidden md:block">
+              <div class="ml-10 flex items-baseline space-x-4">
+                <a href="{% url 'portal:dashboard' %}" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Dashboard</a>
+                <a href="{% url 'portal:truck_list' %}" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Trucks</a>
+                <a href="{% url 'portal:driver_list' %}" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Drivers</a>
+                <a href="{% url 'portal:job_list' %}" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Jobs</a>
+                <a href="{% url 'portal:logs' %}" class="{% if request.user.is_superuser %}text-yellow-400{% else %}text-gray-300{% endif %} hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Logs</a>
+              </div>
+            </div>
+          </div>
+          <div class="hidden md:block">
+            <form class="flex items-center" action="{% url 'portal:logout' %}" method="post">
+              {% csrf_token %}
+              <span class="text-gray-300 mr-4 text-sm font-medium">{{ user.username }}</span>
+              <button class="bg-transparent border border-gray-400 text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-1 rounded text-sm transition-colors" type="submit">Logout</button>
+            </form>
+          </div>
+          <div class="-mr-2 flex md:hidden">
+            <button @click="open = !open" type="button" class="bg-gray-900 inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white">
+              <span class="sr-only">Open main menu</span>
+              <svg class="h-6 w-6" x-show="!open" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+              <svg class="h-6 w-6" x-show="open" style="display: none;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div x-show="open" style="display: none;" class="md:hidden border-t border-gray-700">
+        <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+          <a href="{% url 'portal:dashboard' %}" class="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Dashboard</a>
+          <a href="{% url 'portal:truck_list' %}" class="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Trucks</a>
+          <a href="{% url 'portal:driver_list' %}" class="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Drivers</a>
+          <a href="{% url 'portal:job_list' %}" class="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Jobs</a>
+          <a href="{% url 'portal:logs' %}" class="{% if request.user.is_superuser %}text-yellow-400{% else %}text-gray-300{% endif %} hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Logs</a>
+        </div>
+        <div class="pt-4 pb-3 border-t border-gray-700">
+          <form class="flex items-center px-5 space-x-3" action="{% url 'portal:logout' %}" method="post">
             {% csrf_token %}
-            <span class="navbar-text me-3">{{ user.username }}</span>
-            <button class="btn btn-outline-light btn-sm" type="submit">Logout</button>
+            <span class="text-gray-300 text-base font-medium">{{ user.username }}</span>
+            <button class="bg-transparent border border-gray-400 text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-1 rounded text-sm transition-colors" type="submit">Logout</button>
           </form>
         </div>
       </div>
     </nav>
     
-    <div class="container">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
       {% if messages %}
+        <div class="mb-6 space-y-2">
         {% for message in messages %}
-          <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          <div x-data="{ show: true }" x-show="show" class="flex justify-between items-center p-4 rounded border {% if message.tags == 'error' %}bg-red-50 text-red-700 border-red-200{% elif message.tags == 'success' %}bg-green-50 text-green-700 border-green-200{% elif message.tags == 'warning' %}bg-yellow-50 text-yellow-700 border-yellow-200{% else %}bg-blue-50 text-blue-700 border-blue-200{% endif %}">
+            <div>{{ message }}</div>
+            <button @click="show = false" type="button" class="text-gray-500 hover:text-gray-700 focus:outline-none">
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
           </div>
         {% endfor %}
+        </div>
       {% endif %}
 
-      <div class="row mb-3">
-        <div class="col">
-          <h3>{% block page_title %}{% endblock %}</h3>
-          <p class="text-muted">{% block page_subtitle %}{% endblock %}</p>
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+        <div>
+          <h3 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">{% block page_title %}{% endblock %}</h3>
+          {% block page_subtitle %}{% endblock %}
         </div>
-        <div class="col-auto">
+        <div class="mt-4 sm:mt-0 flex space-x-3">
           {% block header_actions %}{% endblock %}
         </div>
       </div>
 {% else %}
-  <!-- Unauthenticated (Login) - Remains responsive -->
-  <div class="container">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 {% endif %}
 
-    <!-- Main Content Block (Declared only once) -->
     {% block content %}{% endblock %}
 
-    </div> <!-- Close container -->
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    </div>
 </body>
 </html>

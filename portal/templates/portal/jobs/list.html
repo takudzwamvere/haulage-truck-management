@@ -4,58 +4,58 @@
 {% block page_title %}Jobs{% endblock %}
 
 {% block header_actions %}
-  <a href="{% url 'portal:job_create' %}" class="btn btn-primary">Add Job</a>
+  <a href="{% url 'portal:job_create' %}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">Add Job</a>
 {% endblock %}
 
 {% block content %}
 
-<div class="mb-3">
-  <strong>Filter:</strong> 
-  <a href="?" class="btn btn-sm {% if not status_filter %}btn-secondary{% else %}btn-outline-secondary{% endif %}">All</a>
+<div class="mb-6 flex flex-wrap items-center gap-2">
+  <span class="text-sm font-medium text-gray-700">Filter:</span> 
+  <a href="?" class="inline-flex items-center px-3 py-1.5 border {% if not status_filter %}border-transparent text-white bg-gray-600 hover:bg-gray-700{% else %}border-gray-300 text-gray-700 bg-white hover:bg-gray-50{% endif %} text-xs font-medium rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">All</a>
   {% for val, label in status_tabs %}
     {% if val %}
-      <a href="?status={{ val }}" class="btn btn-sm {% if status_filter == val %}btn-secondary{% else %}btn-outline-secondary{% endif %}">{{ label }}</a>
+      <a href="?status={{ val }}" class="inline-flex items-center px-3 py-1.5 border {% if status_filter == val %}border-transparent text-white bg-gray-600 hover:bg-gray-700{% else %}border-gray-300 text-gray-700 bg-white hover:bg-gray-50{% endif %} text-xs font-medium rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">{{ label }}</a>
     {% endif %}
   {% endfor %}
 </div>
 
-<div class="card">
-  <div class="card-body p-0">
+<div class="bg-white shadow overflow-hidden sm:rounded-lg">
+  <div class="border-t border-gray-200">
     {% if page_obj.object_list %}
-    <div class="table-responsive">
-      <table class="table table-striped table-bordered mb-0">
-      <thead>
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-gray-50">
         <tr>
-          <th>ID</th>
-          <th>Route</th>
-          <th>Driver</th>
-          <th>Truck</th>
-          <th>Status</th>
-          <th>Actions</th>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Route</th>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Driver</th>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Truck</th>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+          <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody class="bg-white divide-y divide-gray-200">
         {% for job in page_obj %}
-        <tr>
-          <td>{{ job.id }}</td>
-          <td>{{ job.pick_up_location }} &rarr; {{ job.delivery_location }}</td>
-          <td>{{ job.assigned_driver.name|default:"Unassigned" }}</td>
-          <td>{{ job.assigned_truck.registration_no|default:"Unassigned" }}</td>
-          <td>
+        <tr class="hover:bg-gray-50">
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ job.id }}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ job.pick_up_location }} &rarr; {{ job.delivery_location }}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ job.assigned_driver.name|default:"Unassigned" }}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ job.assigned_truck.registration_no|default:"Unassigned" }}</td>
+          <td class="px-6 py-4 whitespace-nowrap">
             {% if job.status == 'completed' %}
-              <span class="badge bg-success">Completed</span>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Completed</span>
             {% elif job.status == 'in_transit' %}
-              <span class="badge bg-primary">In Transit</span>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">In Transit</span>
             {% elif job.status == 'pending' %}
-              <span class="badge bg-warning text-dark">Pending</span>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Pending</span>
             {% else %}
-              <span class="badge bg-danger">Cancelled</span>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Cancelled</span>
             {% endif %}
           </td>
-          <td>
-            <a href="{% url 'portal:job_detail' job.pk %}" class="btn btn-sm btn-outline-info">View</a>
+          <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+            <a href="{% url 'portal:job_detail' job.pk %}" class="text-indigo-600 hover:text-indigo-900">View</a>
             {% if request.user.is_superuser %}
-            <a href="{% url 'portal:job_delete' job.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>
+            <a href="{% url 'portal:job_delete' job.pk %}" class="text-red-600 hover:text-red-900">Delete</a>
             {% endif %}
           </td>
         </tr>
@@ -65,24 +65,38 @@
     </div>
 
     {% if page_obj.has_other_pages %}
-    <div class="p-3 border-top d-flex justify-content-between align-items-center">
-      <small>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</small>
-      <div>
-        {% if page_obj.has_previous %}
-          <a href="?{% if status_filter %}status={{ status_filter }}&{% endif %}page={{ page_obj.previous_page_number }}" class="btn btn-sm btn-outline-secondary">&laquo; Prev</a>
-        {% endif %}
-        {% if page_obj.has_next %}
-          <a href="?{% if status_filter %}status={{ status_filter }}&{% endif %}page={{ page_obj.next_page_number }}" class="btn btn-sm btn-outline-secondary">Next &raquo;</a>
-        {% endif %}
+    <div class="bg-white px-4 py-3 border-t border-gray-200 flex items-center justify-between sm:px-6">
+      <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+        <div>
+          <p class="text-sm text-gray-700">
+            Page <span class="font-medium">{{ page_obj.number }}</span> of <span class="font-medium">{{ page_obj.paginator.num_pages }}</span>
+          </p>
+        </div>
+        <div>
+          <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+            {% if page_obj.has_previous %}
+              <a href="?{% if status_filter %}status={{ status_filter }}&{% endif %}page={{ page_obj.previous_page_number }}" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                <span class="sr-only">Previous</span>
+                &laquo; Prev
+              </a>
+            {% endif %}
+            {% if page_obj.has_next %}
+              <a href="?{% if status_filter %}status={{ status_filter }}&{% endif %}page={{ page_obj.next_page_number }}" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                <span class="sr-only">Next</span>
+                Next &raquo;
+              </a>
+            {% endif %}
+          </nav>
+        </div>
       </div>
     </div>
     {% endif %}
 
     {% else %}
-    <div class="p-4 text-center">
-      <p>No jobs found.</p>
+    <div class="px-4 py-12 text-center">
+      <p class="text-gray-500 mb-4">No jobs found.</p>
       {% if not status_filter %}
-        <a href="{% url 'portal:job_create' %}" class="btn btn-primary">Add Job</a>
+        <a href="{% url 'portal:job_create' %}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">Add Job</a>
       {% endif %}
     </div>
     {% endif %}

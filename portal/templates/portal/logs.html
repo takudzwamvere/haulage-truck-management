@@ -5,13 +5,11 @@
 {% block page_subtitle %}{% if request.user.is_superuser %}Live audit trails for the haulage platform{% else %}Your recent actions on the platform{% endif %}{% endblock %}
 
 {% block content %}
-<div class="card">
-  <div class="card-body p-0 bg-dark text-light rounded-bottom">
-    <div class="p-3" style="max-height: 70vh; overflow-y: auto; font-family: monospace; font-size: 0.85rem;">
-      {% for line in lines %}
-        <div class="border-bottom border-secondary pb-1 mb-1" style="white-space: pre-wrap; word-break: break-all;">{{ line }}</div>
-      {% endfor %}
-    </div>
+<div class="bg-white shadow sm:rounded-lg overflow-hidden">
+  <div class="bg-gray-900 text-gray-300 p-4 font-mono text-sm h-[70vh] overflow-y-auto">
+    {% for line in lines %}
+      <div class="border-b border-gray-700 pb-1 mb-1 whitespace-pre-wrap break-all">{{ line }}</div>
+    {% endfor %}
   </div>
 </div>
 {% endblock %}
