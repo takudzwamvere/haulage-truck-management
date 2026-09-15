@@ -1,6 +1,8 @@
 from ninja import Router
 from django.shortcuts import get_object_or_404
 from django.db import transaction
+from django.core.exceptions import ValidationError
+from ninja.errors import HttpError
 from .models import Truck, Driver, Job
 from .schemas import (
     TruckIn, TruckOut, TruckPatch,
@@ -39,7 +41,7 @@ def list_trucks(request):
 
 @truck_router.post('/', response=TruckOut)
 def create_truck(request, payload: TruckIn):
-    truck = Truck.objects.create(**payload.dict())
+    truck = Truck.objects.create(**payload.model_dump())
     logger.info(f'Truck {truck.registration_no} created')
     return truck
 
@@ -60,12 +62,14 @@ def update_truck(request, truck_id: int, payload: TruckPatch):
     return truck
 
 
-@truck_router.delete('/{truck_id}/')
+@truck_router.delete('/{truck_id}/', response={200: dict, 403: ErrorOut})
 def delete_truck(request, truck_id: int):
+    if not request.user.is_superuser:
+        return 403, {'detail': 'Only administrators can delete trucks.'}
     truck = get_object_or_404(Truck, id=truck_id)
-    logger.info(f'Truck {truck.registration_no} deleted')
+    logger.info(f'Truck {truck.registration_no} deleted by {request.user.username}')
     truck.delete()
-    return {'success': True}
+    return 200, {'success': True}
 
 
 @driver_router.get('/', response=list[DriverOut])
@@ -76,7 +80,7 @@ def list_drivers(request):
 
 @driver_router.post('/', response=DriverOut)
 def create_driver(request, payload: DriverIn):
-    driver = Driver.objects.create(**payload.dict())
+    driver = Driver.objects.create(**payload.model_dump())
     logger.info(f'Driver {driver.name} created')
     return driver
 
@@ -97,12 +101,14 @@ def update_driver(request, driver_id: int, payload: DriverPatch):
     return driver
 
 
-@driver_router.delete('/{driver_id}/')
+@driver_router.delete('/{driver_id}/', response={200: dict, 403: ErrorOut})
 def delete_driver(request, driver_id: int):
+    if not request.user.is_superuser:
+        return 403, {'detail': 'Only administrators can delete drivers.'}
     driver = get_object_or_404(Driver, id=driver_id)
-    logger.info(f'Driver {driver.name} deleted')
+    logger.info(f'Driver {driver.name} deleted by {request.user.username}')
     driver.delete()
-    return {'success': True}
+    return 200, {'success': True}
 
 
 @job_router.get('/', response=list[JobOut])
@@ -111,11 +117,19 @@ def list_jobs(request):
     return Job.objects.select_related('assigned_truck', 'assigned_driver').all()
 
 
-@job_router.post('/', response=JobOut)
+@job_router.post('/', response={200: JobOut, 400: ErrorOut})
 def create_job(request, payload: JobIn):
-    job = Job.objects.create(**payload.dict())
+    job = Job(**payload.model_dump())
+    try:
+        job.full_clean()
+    except ValidationError as e:
+        errors = '; '.join(
+            f'{field}: {", ".join(msgs)}' for field, msgs in e.message_dict.items()
+        )
+        return 400, {'detail': errors}
+    job.save()
     logger.info(f'Job {job.id} created')
-    return job
+    return 200, job
 
 
 @job_router.get('/{job_id}/', response=JobOut)
@@ -123,12 +137,14 @@ def get_job(request, job_id: int):
     return get_object_or_404(Job, id=job_id)
 
 
-@job_router.delete('/{job_id}/')
+@job_router.delete('/{job_id}/', response={200: dict, 403: ErrorOut})
 def delete_job(request, job_id: int):
+    if not request.user.is_superuser:
+        return 403, {'detail': 'Only administrators can delete jobs.'}
     job = get_object_or_404(Job, id=job_id)
-    logger.info(f'Job {job_id} deleted')
+    logger.info(f'Job {job_id} deleted by {request.user.username}')
     job.delete()
-    return {'success': True}
+    return 200, {'success': True}
 
 
 @job_router.post('/{job_id}/assign/', response={200: JobOut, 400: ErrorOut})
@@ -159,7 +175,7 @@ def assign_job(request, job_id: int, payload: AssignJob):
         truck.status = 'in_transit'
         truck.save()
 
-    logger.info(f'Job assigned')
+    logger.info(f'Job #{job_id} assigned to {driver.name} on truck {truck.registration_no}')
     return job
 
 
@@ -170,6 +186,13 @@ def update_job_status(request, job_id: int, payload: UpdateStatus):
 
         old_status = job.status
         job.status = payload.status
+        try:
+            job.full_clean()
+        except ValidationError as e:
+            errors = '; '.join(
+                f'{field}: {", ".join(msgs)}' for field, msgs in e.message_dict.items()
+            )
+            return 400, {'detail': errors}
         job.save()
 
         if payload.status in ['completed', 'cancelled']:
@@ -178,5 +201,5 @@ def update_job_status(request, job_id: int, payload: UpdateStatus):
                 truck.status = 'available'
                 truck.save()
 
-    logger.info(f'Job {job_id} status updated')
+    logger.info(f'Job {job_id} status changed from {old_status} to {payload.status}')
     return job
