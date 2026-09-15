@@ -23,6 +23,9 @@
                 <a href="{% url 'portal:driver_list' %}" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Drivers</a>
                 <a href="{% url 'portal:job_list' %}" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Jobs</a>
                 <a href="{% url 'portal:logs' %}" class="{% if request.user.is_superuser %}text-yellow-400{% else %}text-gray-300{% endif %} hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Logs</a>
+                {% if request.user.is_superuser %}
+                <a href="{% url 'portal:pending_users' %}" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors relative">Users{% if pending_users_count %}<span class="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-xs font-bold bg-red-500 text-white">{{ pending_users_count }}</span>{% endif %}</a>
+                {% endif %}
               </div>
             </div>
           </div>
@@ -54,6 +57,9 @@
           <a href="{% url 'portal:driver_list' %}" class="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Drivers</a>
           <a href="{% url 'portal:job_list' %}" class="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Jobs</a>
           <a href="{% url 'portal:logs' %}" class="{% if request.user.is_superuser %}text-yellow-400{% else %}text-gray-300{% endif %} hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Logs</a>
+          {% if request.user.is_superuser %}
+          <a href="{% url 'portal:pending_users' %}" class="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Users{% if pending_users_count %} <span class="inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-xs font-bold bg-red-500 text-white">{{ pending_users_count }}</span>{% endif %}</a>
+          {% endif %}
         </div>
         <div class="pt-4 pb-3 border-t border-gray-700">
           <form class="flex items-center px-5 space-x-3" action="{% url 'portal:logout' %}" method="post">
