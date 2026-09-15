@@ -1,19 +1,24 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
-from jose import jwt, JWTError
+from django.conf import settings as django_settings
+from django.core.exceptions import ImproperlyConfigured
 from django.contrib.auth.models import User
+from jose import jwt, JWTError
 from ninja.security import HttpBearer
 from ninja.errors import HttpError
-from datetime import datetime, timedelta, timezone
 import os
 
 SECRET_KEY = os.environ.get('SECRET_KEY')
+if not SECRET_KEY and not getattr(django_settings, '_running_tests', False):
+    raise ImproperlyConfigured(
+        'SECRET_KEY environment variable is required for JWT authentication.'
+    )
+
 ALGORITHM = 'HS256'
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 
 def create_access_token(user_id):
-    
     expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     payload = {
         'sub': str(user_id),
