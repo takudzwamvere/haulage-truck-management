@@ -12,6 +12,10 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),
     path('register/', views.register_view, name='register'),
 
+    path('users/pending/',             views.pending_users_view, name='pending_users'),
+    path('users/<int:pk>/approve/',    views.approve_user_view,  name='approve_user'),
+    path('users/<int:pk>/reject/',     views.reject_user_view,   name='reject_user'),
+
 
     path('trucks/',                 views.truck_list,   name='truck_list'),
     path('trucks/create/',          views.truck_create, name='truck_create'),
