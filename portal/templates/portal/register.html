@@ -31,14 +31,14 @@
       <div class="space-y-4">
         {% for field in form %}
         <div>
-          <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700">{{ field.label }}</label>
+          <label for="{{ field.id_for_label }}" class="block text-sm font-medium {% if field.errors %}text-red-600{% else %}text-gray-700{% endif %}">{{ field.label }}</label>
           <div class="mt-1">
             <style>
               #{{ field.id_for_label }} {
                 display: block;
                 width: 100%;
                 padding: 0.5rem 0.75rem;
-                border: 1px solid #d1d5db;
+                border: 1px solid {% if field.errors %}#dc2626{% else %}#d1d5db{% endif %};
                 border-radius: 0.375rem;
                 font-size: 0.875rem;
                 line-height: 1.25rem;
