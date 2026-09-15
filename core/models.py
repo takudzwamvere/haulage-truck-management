@@ -14,13 +14,16 @@ numeric = RegexValidator(
     regex=r'^\+?[0-9\s\-]+$',
     message='Only numbers'
 )
+
+
 class Driver(models.Model):
     name = models.CharField(max_length=255)
     license_no = models.CharField(max_length=255, unique=True, validators=[alphanumeric])
-    phone_no = models.CharField(max_length=10, validators=[numeric])
-    
+    phone_no = models.CharField(max_length=20, validators=[numeric])
+
     def __str__(self):
         return f"{self.name}: {self.license_no}"
+
 
 class Truck(models.Model):
     STATUS_CHOICES = [
@@ -29,13 +32,14 @@ class Truck(models.Model):
         ('maintenance', 'Maintenance'),
     ]
 
-    registration_no =models.CharField(max_length=20, unique=True, validators=[alphanumeric])
+    registration_no = models.CharField(max_length=20, unique=True, validators=[alphanumeric])
     capacity = models.DecimalField(max_digits=10, decimal_places=2)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='available', db_index=True)
 
     def __str__(self):
         return f"{self.registration_no} - {self.status}"
-    
+
+
 class Job(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Pending'),
@@ -43,6 +47,13 @@ class Job(models.Model):
         ('completed', 'Completed'),
         ('cancelled', 'Cancelled'),
     ]
+
+    VALID_TRANSITIONS = {
+        'pending': ['in_transit', 'cancelled'],
+        'in_transit': ['completed', 'cancelled'],
+        'completed': [],
+        'cancelled': [],
+    }
 
     pick_up_location = models.CharField(max_length=255)
     delivery_location = models.CharField(max_length=255)
@@ -62,6 +73,20 @@ class Job(models.Model):
                 raise ValidationError({
                     'delivery_location': 'Delivery location cannot be the same as pick up location.'
                 })
+
+        # Validate status transitions (skip for new objects)
+        if self.pk:
+            try:
+                old = Job.objects.get(pk=self.pk)
+            except Job.DoesNotExist:
+                return
+            if old.status != self.status:
+                allowed = self.VALID_TRANSITIONS.get(old.status, [])
+                if self.status not in allowed:
+                    raise ValidationError({
+                        'status': f'Cannot change status from {old.status} to {self.status}.'
+                    })
+
 
 class AuditLog(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
