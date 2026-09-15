@@ -38,6 +38,7 @@ def login_view(request):
             return redirect('portal:dashboard')
         audit(username, 'Failed login attempt')
         messages.error(request, 'Invalid username or password. Please try again.')
+        return render(request, 'portal/login.html', {'attempted_username': username})
 
     return render(request, 'portal/login.html')
 
