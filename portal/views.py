@@ -316,7 +316,7 @@ def job_detail(request, pk):
         Job.objects.select_related('assigned_truck', 'assigned_driver'), pk=pk
     )
     assign_form = AssignJobForm() if job.status == 'pending' else None
-    status_form = UpdateStatusForm(initial={'status': job.status})
+    status_form = UpdateStatusForm(current_status=job.status)
     return render(request, 'portal/jobs/detail.html', {
         'job': job,
         'assign_form': assign_form,

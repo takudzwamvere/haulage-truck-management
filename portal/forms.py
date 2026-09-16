@@ -111,14 +111,26 @@ class AssignJobForm(forms.Form):
 
 
 class UpdateStatusForm(forms.Form):
-    STATUS_CHOICES = [
-        ('pending',    'Pending'),
-        ('in_transit', 'In Transit'),
-        ('completed',  'Completed'),
-        ('cancelled',  'Cancelled'),
-    ]
+    STATUS_LABELS = {
+        'pending':    'Pending',
+        'in_transit': 'In Transit',
+        'completed':  'Completed',
+        'cancelled':  'Cancelled',
+    }
     status = forms.ChoiceField(
-        choices=STATUS_CHOICES,
+        choices=[],
         widget=forms.Select(attrs={'class': _SELECT}),
         label='New Status',
     )
+
+    def __init__(self, *args, current_status=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        from core.models import Job
+        if current_status is not None:
+            valid_next = Job.VALID_TRANSITIONS.get(current_status, [])
+            self.fields['status'].choices = [
+                (s, self.STATUS_LABELS[s]) for s in valid_next
+            ]
+        else:
+            # Fallback: show all choices (e.g. when current_status is unknown)
+            self.fields['status'].choices = list(self.STATUS_LABELS.items())
