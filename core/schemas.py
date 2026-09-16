@@ -1,5 +1,6 @@
 from ninja import Schema
 from typing import Literal, Annotated
+from datetime import datetime
 from decimal import Decimal
 from pydantic import Field
 
@@ -56,6 +57,8 @@ class JobOut(Schema):
     status: str
     assigned_truck: TruckOut | None = None
     assigned_driver: DriverOut | None = None
+    created_at: datetime
+    modified_at: datetime
 
 
 class AssignJob(Schema):
