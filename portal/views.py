@@ -446,16 +446,19 @@ def job_update_status(request, pk):
 @login_required
 def logs_view(request):
     if request.user.is_superuser:
-        logs = AuditLog.objects.all()[:200]
+        qs = AuditLog.objects.all()
     else:
-        logs = AuditLog.objects.filter(user=request.user.username)[:200]
+        qs = AuditLog.objects.filter(user=request.user.username)
+
+    paginator = Paginator(qs, 50)
+    page_obj = paginator.get_page(request.GET.get('page'))
 
     lines = [
         f"[{log.timestamp.strftime('%Y-%m-%d %H:%M:%S')}] {log.user}: {log.action}"
-        for log in logs
+        for log in page_obj
     ]
 
     if not lines:
         lines = ['No activity recorded yet.']
 
-    return render(request, 'portal/logs.html', {'lines': lines})
+    return render(request, 'portal/logs.html', {'lines': lines, 'page_obj': page_obj})
