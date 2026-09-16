@@ -375,6 +375,12 @@ def job_assign(request, pk):
         driver = Driver.objects.select_for_update().get(pk=form.cleaned_data['driver'].pk)
         locked_job = Job.objects.select_for_update().get(pk=pk)
 
+        # Only 'pending' jobs can be assigned (state machine guard)
+        if locked_job.status != 'pending':
+            audit(request.user.username, f'Attempted to assign job #{pk} with status {locked_job.status!r}')
+            messages.error(request, f'Only pending jobs can be assigned. Current status: {locked_job.status}.')
+            return redirect('portal:job_detail', pk=pk)
+
         if truck.status != 'available':
             audit(request.user.username, f'Attempted to assign unavailable truck {truck.registration_no} to job #{pk}')
             messages.error(request, f'Truck {truck.registration_no} is no longer available.')

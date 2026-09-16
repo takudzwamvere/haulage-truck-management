@@ -169,6 +169,11 @@ def assign_job(request, job_id: int, payload: AssignJob):
         truck = get_object_or_404(Truck.objects.select_for_update(), id=payload.truck_id)
         driver = get_object_or_404(Driver.objects.select_for_update(), id=payload.driver_id)
 
+        # Only 'pending' jobs can be assigned (state machine guard)
+        if job.status != 'pending':
+            logger.warning(f'Attempted to assign job {job_id} with status {job.status!r}')
+            return 400, {'detail': f'Only pending jobs can be assigned. Current status: {job.status}'}
+
         if truck.status != 'available':
             logger.warning(f'Attempted to assign unavailable truck {truck.registration_no} to job {job_id}')
             return 400, {'detail': f'Truck {truck.registration_no} is not available. Current status: {truck.status}'}
