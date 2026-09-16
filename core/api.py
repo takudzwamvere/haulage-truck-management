@@ -51,15 +51,22 @@ def get_truck(request, truck_id: int):
     return get_object_or_404(Truck, id=truck_id)
 
 
-@truck_router.patch('/{truck_id}/', response=TruckOut)
+@truck_router.patch('/{truck_id}/', response={200: TruckOut, 400: ErrorOut})
 def update_truck(request, truck_id: int, payload: TruckPatch):
     truck = get_object_or_404(Truck, id=truck_id)
     for attr, value in payload.model_dump().items():
         if value is not None:
             setattr(truck, attr, value)
+    try:
+        truck.full_clean()
+    except ValidationError as e:
+        errors = '; '.join(
+            f'{field}: {", ".join(msgs)}' for field, msgs in e.message_dict.items()
+        )
+        return 400, {'detail': errors}
     truck.save()
     logger.info(f'Truck {truck.registration_no} updated')
-    return truck
+    return 200, truck
 
 
 @truck_router.delete('/{truck_id}/', response={200: dict, 403: ErrorOut})
@@ -90,15 +97,22 @@ def get_driver(request, driver_id: int):
     return get_object_or_404(Driver, id=driver_id)
 
 
-@driver_router.patch('/{driver_id}/', response=DriverOut)
+@driver_router.patch('/{driver_id}/', response={200: DriverOut, 400: ErrorOut})
 def update_driver(request, driver_id: int, payload: DriverPatch):
     driver = get_object_or_404(Driver, id=driver_id)
     for attr, value in payload.model_dump().items():
         if value is not None:
             setattr(driver, attr, value)
+    try:
+        driver.full_clean()
+    except ValidationError as e:
+        errors = '; '.join(
+            f'{field}: {", ".join(msgs)}' for field, msgs in e.message_dict.items()
+        )
+        return 400, {'detail': errors}
     driver.save()
     logger.info(f'Driver {driver.name} updated')
-    return driver
+    return 200, driver
 
 
 @driver_router.delete('/{driver_id}/', response={200: dict, 403: ErrorOut})
