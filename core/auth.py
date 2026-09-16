@@ -9,10 +9,16 @@ from ninja.errors import HttpError
 import os
 
 SECRET_KEY = os.environ.get('SECRET_KEY')
-if not SECRET_KEY and not getattr(django_settings, '_running_tests', False):
-    raise ImproperlyConfigured(
-        'SECRET_KEY environment variable is required for JWT authentication.'
-    )
+if not SECRET_KEY:
+    # Allow tests to run without a real SECRET_KEY by falling back to a
+    # deterministic sentinel. Outside of the test runner, raise immediately
+    # so misconfigured deployments fail fast at startup.
+    if getattr(django_settings, '_running_tests', False):
+        SECRET_KEY = 'test-only-insecure-secret-key'
+    else:
+        raise ImproperlyConfigured(
+            'SECRET_KEY environment variable is required for JWT authentication.'
+        )
 
 ALGORITHM = 'HS256'
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
