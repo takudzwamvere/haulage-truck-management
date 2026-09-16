@@ -409,7 +409,6 @@ def job_update_status(request, pk):
     if request.method != 'POST':
         return redirect('portal:job_detail', pk=pk)
 
-    job = get_object_or_404(Job, pk=pk)
     form = UpdateStatusForm(request.POST)
 
     if not form.is_valid():
@@ -417,16 +416,17 @@ def job_update_status(request, pk):
         return redirect('portal:job_detail', pk=pk)
 
     new_status = form.cleaned_data['status']
-    old_status = job.status
-
-    # Validate status transition
-    allowed = Job.VALID_TRANSITIONS.get(old_status, [])
-    if new_status not in allowed:
-        messages.error(request, f'Cannot change status from {old_status} to {new_status}.')
-        return redirect('portal:job_detail', pk=pk)
 
     with transaction.atomic():
+        # Fetch under lock so old_status is authoritative (prevents TOC/TOU)
         locked_job = Job.objects.select_for_update().get(pk=pk)
+        old_status = locked_job.status
+
+        # Validate status transition against the locked row's current status
+        allowed = Job.VALID_TRANSITIONS.get(old_status, [])
+        if new_status not in allowed:
+            messages.error(request, f'Cannot change status from {old_status} to {new_status}.')
+            return redirect('portal:job_detail', pk=pk)
 
         locked_job.status = new_status
         locked_job.save()
