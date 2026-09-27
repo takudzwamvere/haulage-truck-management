@@ -8,7 +8,7 @@ from ninja.security import HttpBearer
 from ninja.errors import HttpError
 import os
 
-SECRET_KEY = os.environ.get('SECRET_KEY')
+SECRET_KEY = getattr(django_settings, 'SECRET_KEY', None) or os.environ.get('SECRET_KEY')
 if not SECRET_KEY:
     # Allow tests to run without a real SECRET_KEY by falling back to a
     # deterministic sentinel. Outside of the test runner, raise immediately
