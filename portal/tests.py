@@ -57,3 +57,16 @@ class PortalAuthTests(TestCase):
         })
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Invalid username or password')
+
+    def test_login_inactive_user_shows_pending_approval_warning(self):
+        User.objects.create_user(
+            username='pendinguser',
+            password='SecretPassword123!',
+            is_active=False
+        )
+        response = self.client.post(reverse('portal:login'), {
+            'username': 'pendinguser',
+            'password': 'SecretPassword123!',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Your account is pending admin approval')
