@@ -39,11 +39,19 @@ def list_trucks(request):
     return Truck.objects.all()
 
 
-@truck_router.post('/', response=TruckOut)
+@truck_router.post('/', response={200: TruckOut, 400: ErrorOut})
 def create_truck(request, payload: TruckIn):
-    truck = Truck.objects.create(**payload.model_dump())
+    truck = Truck(**payload.model_dump())
+    try:
+        truck.full_clean()
+    except ValidationError as e:
+        errors = '; '.join(
+            f'{field}: {", ".join(msgs)}' for field, msgs in e.message_dict.items()
+        )
+        return 400, {'detail': errors}
+    truck.save()
     logger.info(f'Truck {truck.registration_no} created')
-    return truck
+    return 200, truck
 
 
 @truck_router.get('/{truck_id}/', response=TruckOut)
@@ -85,11 +93,19 @@ def list_drivers(request):
     return Driver.objects.all()
 
 
-@driver_router.post('/', response=DriverOut)
+@driver_router.post('/', response={200: DriverOut, 400: ErrorOut})
 def create_driver(request, payload: DriverIn):
-    driver = Driver.objects.create(**payload.model_dump())
+    driver = Driver(**payload.model_dump())
+    try:
+        driver.full_clean()
+    except ValidationError as e:
+        errors = '; '.join(
+            f'{field}: {", ".join(msgs)}' for field, msgs in e.message_dict.items()
+        )
+        return 400, {'detail': errors}
+    driver.save()
     logger.info(f'Driver {driver.name} created')
-    return driver
+    return 200, driver
 
 
 @driver_router.get('/{driver_id}/', response=DriverOut)
