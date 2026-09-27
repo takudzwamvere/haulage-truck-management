@@ -1,5 +1,5 @@
 from django.test import TestCase
-from core.models import Truck, Driver, Job
+from core.models import Truck, Driver, Job, AuditLog
 
 
 class BusinessRuleTest(TestCase):
@@ -21,6 +21,19 @@ class BusinessRuleTest(TestCase):
             cargo='Electronics',
             status='pending'
         )
+
+    def test_truck_str_representation(self):
+        self.assertEqual(str(self.truck), 'ZW1234 - available')
+
+    def test_driver_str_representation(self):
+        self.assertEqual(str(self.driver), 'John Doe: DL12345')
+
+    def test_job_str_representation(self):
+        self.assertEqual(str(self.job), f'Job {self.job.id} (pending)')
+
+    def test_audit_log_str_representation(self):
+        log = AuditLog.objects.create(user='admin', action='Created driver John Doe')
+        self.assertIn('admin: Created driver John Doe', str(log))
 
     def test_truck_in_transit_cannot_be_assigned(self):
         self.assertIn(self.truck, Truck.objects.filter(status='available'))
