@@ -89,3 +89,14 @@ class BusinessRuleTest(TestCase):
         with self.assertRaises(ValidationError) as ctx:
             job.full_clean()
         self.assertIn('delivery_location', ctx.exception.message_dict)
+
+    def test_invalid_status_transition_raises_validation_error(self):
+        self.job.status = 'in_transit'
+        self.job.save()
+        self.job.status = 'completed'
+        self.job.save()
+
+        self.job.status = 'pending'
+        with self.assertRaises(ValidationError) as ctx:
+            self.job.full_clean()
+        self.assertIn('status', ctx.exception.message_dict)
