@@ -1,4 +1,5 @@
 from django.test import TestCase
+from django.core.exceptions import ValidationError
 from core.models import Truck, Driver, Job, AuditLog
 
 
@@ -77,3 +78,14 @@ class BusinessRuleTest(TestCase):
             status__in=['pending', 'in_transit']
         )
         self.assertTrue(active_jobs.exists())
+
+    def test_same_pickup_and_delivery_location_raises_validation_error(self):
+        job = Job(
+            pick_up_location='Harare',
+            delivery_location=' harare ',
+            cargo='Electronics',
+            status='pending',
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            job.full_clean()
+        self.assertIn('delivery_location', ctx.exception.message_dict)
