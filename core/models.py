@@ -17,6 +17,7 @@ numeric = RegexValidator(
 
 
 class Driver(models.Model):
+    """Represents a registered haulage driver."""
     name = models.CharField(max_length=255)
     license_no = models.CharField(max_length=255, unique=True, validators=[alphanumeric])
     phone_no = models.CharField(max_length=20, validators=[numeric])
@@ -26,6 +27,7 @@ class Driver(models.Model):
 
 
 class Truck(models.Model):
+    """Represents a haulage vehicle in the fleet and its availability state."""
     STATUS_CHOICES = [
         ('available', 'Available'),
         ('in_transit', 'In Transit'),
@@ -41,6 +43,7 @@ class Truck(models.Model):
 
 
 class Job(models.Model):
+    """Represents a cargo delivery assignment with status progression rules."""
     STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('in_transit', 'In Transit'),
@@ -89,6 +92,7 @@ class Job(models.Model):
 
 
 class AuditLog(models.Model):
+    """Immutable audit trail record for user actions and system events."""
     timestamp = models.DateTimeField(auto_now_add=True)
     user = models.CharField(max_length=255)
     action = models.CharField(max_length=500)
