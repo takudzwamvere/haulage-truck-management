@@ -1,6 +1,8 @@
 from django.test import TestCase
 from django.core.exceptions import ValidationError
+from jose import jwt
 from core.models import Truck, Driver, Job, AuditLog
+from core.auth import create_access_token, decode_access_token, SECRET_KEY, ALGORITHM
 
 
 class BusinessRuleTest(TestCase):
@@ -100,3 +102,18 @@ class BusinessRuleTest(TestCase):
         with self.assertRaises(ValidationError) as ctx:
             self.job.full_clean()
         self.assertIn('status', ctx.exception.message_dict)
+
+
+class AuthTokenTest(TestCase):
+
+    def test_create_and_decode_token_success(self):
+        token = create_access_token(user_id=42)
+        decoded_id = decode_access_token(token)
+        self.assertEqual(decoded_id, 42)
+
+    def test_decode_invalid_token_returns_none(self):
+        self.assertIsNone(decode_access_token('invalid-garbage-token'))
+
+    def test_decode_token_with_non_integer_sub_returns_none(self):
+        token = jwt.encode({'sub': 'not-an-int'}, SECRET_KEY, algorithm=ALGORITHM)
+        self.assertIsNone(decode_access_token(token))
