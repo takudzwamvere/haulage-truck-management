@@ -17,3 +17,8 @@ htmlcov/
 .DS_Store
 .idea/
 .vscode/
+.mypy_cache/
+.ruff_cache/
+*.swp
+*.swo
+*~
