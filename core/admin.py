@@ -21,6 +21,8 @@ class JobAdmin(admin.ModelAdmin):
     list_filter = ('status',)
     search_fields = ('pick_up_location', 'delivery_location', 'cargo')
     readonly_fields = ('created_at', 'modified_at')
+    date_hierarchy = 'created_at'
+    ordering = ('-created_at',)
 
 
 @admin.register(AuditLog)
@@ -30,6 +32,7 @@ class AuditLogAdmin(admin.ModelAdmin):
     list_filter = ('user',)
     search_fields = ('user', 'action')
     readonly_fields = ('timestamp', 'user', 'action')
+    date_hierarchy = 'timestamp'
 
     def has_add_permission(self, request):
         return False
