@@ -67,6 +67,11 @@ def seed():
     print(f"Created {len(jobs)} jobs")
 
     print("Done! Seed data loaded successfully.")
+    return {
+        'trucks': len(trucks),
+        'drivers': len(drivers),
+        'jobs': len(jobs),
+    }
 
 
 if __name__ == '__main__':
