@@ -91,10 +91,10 @@ Pagination was implemented here but not in the frontend, might be implemented by
 ## Running Tests
 
 ```bash
-docker-compose exec web python manage.py test core --verbosity=2
+docker-compose exec web python manage.py test --verbosity=2
 ```
 
-There are 5 tests covering the core business rules — truck and driver assignment logic, job status transitions, and constraint validation.
+The automated test suite covers core business rules (truck and driver assignment logic, job status transitions, constraint validation), JWT token handling, authentication flows, redirects, and portal views.
 
 ---
 
@@ -119,3 +119,4 @@ Copy `.env.example` to `.env` and update the values before running in production
 | `ALLOWED_HOSTS` | Comma-separated list of allowed hosts |
 | `CSRF_TRUSTED_ORIGINS` | Comma-separated list of trusted origins with scheme |
 | `DATABASE_URL` | PostgreSQL connection string |
+| `LOG_DIR` | Directory path for application log files (optional, default: `logs`) |
