@@ -1,6 +1,7 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
+from core.models import AuditLog
 
 
 class PortalRedirectTests(TestCase):
@@ -70,3 +71,28 @@ class PortalAuthTests(TestCase):
         })
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Your account is pending admin approval')
+
+
+class PortalLogsViewTests(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(
+            username='loguser',
+            password='SecretPassword123!',
+            is_active=True
+        )
+
+    def test_logs_view_requires_login(self):
+        response = self.client.get(reverse('portal:logs'))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse('portal:login'), response.url)
+
+    def test_logs_view_authenticated_user_renders_template(self):
+        self.client.login(username='loguser', password='SecretPassword123!')
+        AuditLog.objects.create(user='loguser', action='Assigned job #1')
+        response = self.client.get(reverse('portal:logs'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'portal/logs.html')
+        self.assertContains(response, 'Assigned job #1')
+
