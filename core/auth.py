@@ -37,7 +37,7 @@ def decode_access_token(token):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return int(payload.get('sub'))
-    except JWTError:
+    except (JWTError, ValueError, TypeError):
         return None
 
 
