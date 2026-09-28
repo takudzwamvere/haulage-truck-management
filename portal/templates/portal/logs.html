@@ -9,11 +9,27 @@
   <div class="bg-gray-900 text-gray-300 p-4 font-mono text-sm h-[70vh] overflow-y-auto">
     {% for line in lines %}
       <div class="border-b border-gray-700 pb-1 mb-1 whitespace-pre-wrap break-all">{{ line }}</div>
+    {% empty %}
+      <div class="text-gray-500 italic py-4 text-center">No activity recorded yet.</div>
     {% endfor %}
   </div>
 
   {% if page_obj.has_other_pages %}
   <div class="bg-white px-4 py-3 border-t border-gray-200 flex items-center justify-between sm:px-6">
+    <div class="flex-1 flex justify-between sm:hidden">
+      {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+          &laquo; Prev
+        </a>
+      {% else %}
+        <span></span>
+      {% endif %}
+      {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+          Next &raquo;
+        </a>
+      {% endif %}
+    </div>
     <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
       <div>
         <p class="text-sm text-gray-700">
