@@ -94,7 +94,7 @@ Pagination was implemented here but not in the frontend, might be implemented by
 docker-compose exec web python manage.py test --verbosity=2
 ```
 
-The automated test suite covers core business rules (truck and driver assignment logic, job status transitions, constraint validation), JWT token handling, authentication flows, redirects, and portal views.
+The automated test suite covers core business rules (truck and driver assignment logic, job status transitions, constraint validation), JWT token handling, REST API endpoints (authentication, trucks, drivers, and jobs), portal dashboard and CRUD workflows, user approval lifecycle, and template context processors.
 
 ---
 
