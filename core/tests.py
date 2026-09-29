@@ -155,3 +155,70 @@ class ApiAuthEndpointTests(TestCase):
         data = response.json()
         self.assertIn('detail', data)
         self.assertEqual(data['detail'], 'Invalid username or password')
+
+
+class ApiTruckEndpointTests(TestCase):
+
+    def setUp(self):
+        import json
+        from django.contrib.auth.models import User
+        from django.test import Client
+        self.client = Client()
+        self.json = json
+        self.user = User.objects.create_user(username='regularapi', password='Password123!')
+        self.superuser = User.objects.create_superuser(username='superapi', password='Password123!', email='s@x.com')
+        self.token = create_access_token(self.user.id)
+        self.super_token = create_access_token(self.superuser.id)
+        self.truck = Truck.objects.create(registration_no='TRK-TEST-1', capacity=20.0, status='available')
+
+    def test_list_trucks_requires_bearer_auth(self):
+        response = self.client.get('/api/trucks/')
+        self.assertEqual(response.status_code, 401)
+
+    def test_list_and_get_truck_authorized(self):
+        response = self.client.get(
+            '/api/trucks/',
+            HTTP_AUTHORIZATION=f'Bearer {self.token}'
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn('items', data)
+
+        detail = self.client.get(
+            f'/api/trucks/{self.truck.id}/',
+            HTTP_AUTHORIZATION=f'Bearer {self.token}'
+        )
+        self.assertEqual(detail.status_code, 200)
+        self.assertEqual(detail.json()['registration_no'], 'TRK-TEST-1')
+
+    def test_create_truck_success(self):
+        payload = {
+            'registration_no': 'TRK-NEW-2',
+            'capacity': 18.5,
+            'status': 'available',
+        }
+        response = self.client.post(
+            '/api/trucks/',
+            data=self.json.dumps(payload),
+            content_type='application/json',
+            HTTP_AUTHORIZATION=f'Bearer {self.token}'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(Truck.objects.filter(registration_no='TRK-NEW-2').exists())
+
+    def test_delete_truck_permission(self):
+        # Regular user attempt -> 403
+        resp_forbidden = self.client.delete(
+            f'/api/trucks/{self.truck.id}/',
+            HTTP_AUTHORIZATION=f'Bearer {self.token}'
+        )
+        self.assertEqual(resp_forbidden.status_code, 403)
+        self.assertTrue(Truck.objects.filter(id=self.truck.id).exists())
+
+        # Superuser attempt -> 200
+        resp_ok = self.client.delete(
+            f'/api/trucks/{self.truck.id}/',
+            HTTP_AUTHORIZATION=f'Bearer {self.super_token}'
+        )
+        self.assertEqual(resp_ok.status_code, 200)
+        self.assertFalse(Truck.objects.filter(id=self.truck.id).exists())
