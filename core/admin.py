@@ -7,12 +7,16 @@ class TruckAdmin(admin.ModelAdmin):
     list_display = ('registration_no', 'capacity', 'status')
     list_filter = ('status',)
     search_fields = ('registration_no',)
+    search_help_text = 'Search by registration number'
+    list_per_page = 25
 
 
 @admin.register(Driver)
 class DriverAdmin(admin.ModelAdmin):
     list_display = ('name', 'license_no', 'phone_no')
     search_fields = ('name', 'license_no')
+    search_help_text = 'Search by driver name or license number'
+    list_per_page = 25
 
 
 @admin.register(Job)
@@ -20,9 +24,11 @@ class JobAdmin(admin.ModelAdmin):
     list_display = ('id', 'pick_up_location', 'delivery_location', 'status', 'assigned_truck', 'assigned_driver', 'created_at')
     list_filter = ('status',)
     search_fields = ('pick_up_location', 'delivery_location', 'cargo')
+    search_help_text = 'Search by pickup, delivery, or cargo details'
     readonly_fields = ('created_at', 'modified_at')
     date_hierarchy = 'created_at'
     ordering = ('-created_at',)
+    list_per_page = 25
 
 
 @admin.register(AuditLog)
@@ -31,8 +37,10 @@ class AuditLogAdmin(admin.ModelAdmin):
     list_display = ('timestamp', 'user', 'action')
     list_filter = ('user',)
     search_fields = ('user', 'action')
+    search_help_text = 'Search by username or audit action'
     readonly_fields = ('timestamp', 'user', 'action')
     date_hierarchy = 'timestamp'
+    list_per_page = 50
 
     def has_add_permission(self, request):
         return False
@@ -42,3 +50,4 @@ class AuditLogAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
