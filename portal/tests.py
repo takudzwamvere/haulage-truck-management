@@ -164,5 +164,54 @@ class PortalRegistrationTests(TestCase):
         self.assertTrue(AuditLog.objects.filter(user='newrecruit', action__contains='Account registered').exists())
 
 
+class PortalUserApprovalTests(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.superuser = User.objects.create_superuser(
+            username='adminuser',
+            password='AdminPassword123!',
+            email='admin@example.com'
+        )
+        self.regular_user = User.objects.create_user(
+            username='regularuser',
+            password='UserPassword123!',
+            is_active=True
+        )
+        self.pending_user = User.objects.create_user(
+            username='applicant',
+            password='PendingPassword123!',
+            is_active=False
+        )
+
+    def test_pending_users_view_forbidden_for_regular_user(self):
+        self.client.login(username='regularuser', password='UserPassword123!')
+        response = self.client.get(reverse('portal:pending_users'))
+        self.assertRedirects(response, reverse('portal:dashboard'))
+
+    def test_pending_users_view_accessible_by_superuser(self):
+        self.client.login(username='adminuser', password='AdminPassword123!')
+        response = self.client.get(reverse('portal:pending_users'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'portal/pending_users.html')
+        self.assertContains(response, 'applicant')
+
+    def test_approve_user_activates_user(self):
+        self.client.login(username='adminuser', password='AdminPassword123!')
+        response = self.client.post(reverse('portal:approve_user', args=[self.pending_user.pk]))
+        self.assertRedirects(response, reverse('portal:pending_users'))
+        self.pending_user.refresh_from_db()
+        self.assertTrue(self.pending_user.is_active)
+        self.assertTrue(AuditLog.objects.filter(action__contains='Approved user applicant').exists())
+
+    def test_reject_user_deletes_user(self):
+        self.client.login(username='adminuser', password='AdminPassword123!')
+        response = self.client.post(reverse('portal:reject_user', args=[self.pending_user.pk]))
+        self.assertRedirects(response, reverse('portal:pending_users'))
+        self.assertFalse(User.objects.filter(pk=self.pending_user.pk).exists())
+        self.assertTrue(AuditLog.objects.filter(action__contains='Rejected and deleted user applicant').exists())
+
+
+
 
 
