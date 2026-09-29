@@ -117,3 +117,41 @@ class AuthTokenTest(TestCase):
     def test_decode_token_with_non_integer_sub_returns_none(self):
         token = jwt.encode({'sub': 'not-an-int'}, SECRET_KEY, algorithm=ALGORITHM)
         self.assertIsNone(decode_access_token(token))
+
+
+class ApiAuthEndpointTests(TestCase):
+
+    def setUp(self):
+        import json
+        from django.contrib.auth.models import User
+        from django.test import Client
+        self.client = Client()
+        self.json = json
+        self.user = User.objects.create_user(
+            username='apitester',
+            password='SecretPassword123!',
+            is_active=True
+        )
+
+    def test_login_endpoint_success(self):
+        response = self.client.post(
+            '/api/auth/login/',
+            data=self.json.dumps({'username': 'apitester', 'password': 'SecretPassword123!'}),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn('access_token', data)
+        self.assertEqual(data.get('token_type'), 'bearer')
+        self.assertEqual(decode_access_token(data['access_token']), self.user.id)
+
+    def test_login_endpoint_invalid_credentials(self):
+        response = self.client.post(
+            '/api/auth/login/',
+            data=self.json.dumps({'username': 'apitester', 'password': 'WrongPassword'}),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 401)
+        data = response.json()
+        self.assertIn('detail', data)
+        self.assertEqual(data['detail'], 'Invalid username or password')
