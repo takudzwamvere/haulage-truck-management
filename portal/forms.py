@@ -8,6 +8,7 @@ _SELECT = 'mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 bg-whit
 
 
 class TruckForm(forms.ModelForm):
+    """Form for adding and updating fleet trucks."""
     class Meta:
         model = Truck
         fields = ['registration_no', 'capacity', 'status']
@@ -33,6 +34,7 @@ class TruckForm(forms.ModelForm):
 
 
 class DriverForm(forms.ModelForm):
+    """Form for registering and updating driver profiles."""
     class Meta:
         model = Driver
         fields = ['name', 'license_no', 'phone_no']
@@ -58,6 +60,7 @@ class DriverForm(forms.ModelForm):
 
 
 class JobForm(forms.ModelForm):
+    """Form for logging and modifying freight jobs."""
     class Meta:
         model = Job
         fields = ['pick_up_location', 'delivery_location', 'cargo']
@@ -84,6 +87,7 @@ class JobForm(forms.ModelForm):
 
 
 class AssignJobForm(forms.Form):
+    """Form for assigning an available truck and free driver to a pending job."""
     truck = forms.ModelChoiceField(
         queryset=Truck.objects.none(),
         widget=forms.Select(attrs={'class': _SELECT}),
@@ -111,6 +115,7 @@ class AssignJobForm(forms.Form):
 
 
 class UpdateStatusForm(forms.Form):
+    """Form for transitioning a job through valid lifecycle states."""
     STATUS_LABELS = {
         'pending':    'Pending',
         'in_transit': 'In Transit',
