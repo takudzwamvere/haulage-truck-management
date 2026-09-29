@@ -313,6 +313,69 @@ class PortalTruckViewTests(TestCase):
         self.assertFalse(Truck.objects.filter(pk=self.truck.pk).exists())
 
 
+class PortalDriverViewTests(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.superuser = User.objects.create_superuser(
+            username='adminuser',
+            password='AdminPassword123!',
+            email='admin@example.com'
+        )
+        self.user = User.objects.create_user(
+            username='regularuser',
+            password='UserPassword123!',
+            is_active=True
+        )
+        self.driver = Driver.objects.create(
+            name='Kudzi Shumba',
+            license_no='ZW-DL-999',
+            phone_no='0778889999'
+        )
+
+    def test_driver_list_view(self):
+        self.client.login(username='regularuser', password='UserPassword123!')
+        response = self.client.get(reverse('portal:driver_list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'portal/drivers/list.html')
+        self.assertContains(response, 'Kudzi Shumba')
+
+    def test_driver_create_view(self):
+        self.client.login(username='regularuser', password='UserPassword123!')
+        response = self.client.post(reverse('portal:driver_create'), {
+            'name': 'Tatenda Biti',
+            'license_no': 'ZW-DL-777',
+            'phone_no': '0771112222',
+        })
+        self.assertRedirects(response, reverse('portal:driver_list'))
+        self.assertTrue(Driver.objects.filter(license_no='ZW-DL-777').exists())
+        self.assertTrue(AuditLog.objects.filter(action__contains='Created driver Tatenda Biti').exists())
+
+    def test_driver_edit_view(self):
+        self.client.login(username='regularuser', password='UserPassword123!')
+        response = self.client.post(reverse('portal:driver_edit', args=[self.driver.pk]), {
+            'name': 'Kudzi Shumba Updated',
+            'license_no': 'ZW-DL-999',
+            'phone_no': '0779990000',
+        })
+        self.assertRedirects(response, reverse('portal:driver_list'))
+        self.driver.refresh_from_db()
+        self.assertEqual(self.driver.name, 'Kudzi Shumba Updated')
+
+    def test_driver_delete_non_superuser_forbidden(self):
+        self.client.login(username='regularuser', password='UserPassword123!')
+        response = self.client.post(reverse('portal:driver_delete', args=[self.driver.pk]))
+        self.assertRedirects(response, reverse('portal:driver_list'))
+        self.assertTrue(Driver.objects.filter(pk=self.driver.pk).exists())
+
+    def test_driver_delete_superuser_success(self):
+        self.client.login(username='adminuser', password='AdminPassword123!')
+        response = self.client.post(reverse('portal:driver_delete', args=[self.driver.pk]))
+        self.assertRedirects(response, reverse('portal:driver_list'))
+        self.assertFalse(Driver.objects.filter(pk=self.driver.pk).exists())
+
+
+
 
 
 
