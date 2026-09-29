@@ -96,3 +96,43 @@ class PortalLogsViewTests(TestCase):
         self.assertTemplateUsed(response, 'portal/logs.html')
         self.assertContains(response, 'Assigned job #1')
 
+
+class ContextProcessorTests(TestCase):
+
+    def setUp(self):
+        from django.test import RequestFactory
+        from portal.context_processors import pending_users_count
+        self.factory = RequestFactory()
+        self.pending_users_count = pending_users_count
+        self.superuser = User.objects.create_superuser(
+            username='adminuser',
+            password='Password123!',
+            email='admin@example.com'
+        )
+        self.regular_user = User.objects.create_user(
+            username='reguser',
+            password='Password123!'
+        )
+
+    def test_pending_users_count_anonymous(self):
+        from django.contrib.auth.models import AnonymousUser
+        request = self.factory.get('/')
+        request.user = AnonymousUser()
+        result = self.pending_users_count(request)
+        self.assertEqual(result, {'pending_users_count': 0})
+
+    def test_pending_users_count_regular_user(self):
+        request = self.factory.get('/')
+        request.user = self.regular_user
+        result = self.pending_users_count(request)
+        self.assertEqual(result, {'pending_users_count': 0})
+
+    def test_pending_users_count_superuser(self):
+        User.objects.create_user(username='pending1', password='pw', is_active=False)
+        User.objects.create_user(username='pending2', password='pw', is_active=False)
+        request = self.factory.get('/')
+        request.user = self.superuser
+        result = self.pending_users_count(request)
+        self.assertEqual(result, {'pending_users_count': 2})
+
+
