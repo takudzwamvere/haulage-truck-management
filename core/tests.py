@@ -222,3 +222,56 @@ class ApiTruckEndpointTests(TestCase):
         )
         self.assertEqual(resp_ok.status_code, 200)
         self.assertFalse(Truck.objects.filter(id=self.truck.id).exists())
+
+
+class ApiDriverEndpointTests(TestCase):
+
+    def setUp(self):
+        import json
+        from django.contrib.auth.models import User
+        from django.test import Client
+        self.client = Client()
+        self.json = json
+        self.user = User.objects.create_user(username='driverapi', password='Password123!')
+        self.superuser = User.objects.create_superuser(username='superdriverapi', password='Password123!', email='sd@x.com')
+        self.token = create_access_token(self.user.id)
+        self.super_token = create_access_token(self.superuser.id)
+        self.driver = Driver.objects.create(name='Original Driver', license_no='LIC-999', phone_no='+263771112222')
+
+    def test_list_drivers_authorized(self):
+        response = self.client.get(
+            '/api/drivers/',
+            HTTP_AUTHORIZATION=f'Bearer {self.token}'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('items', response.json())
+
+    def test_create_driver_success(self):
+        payload = {
+            'name': 'New Driver',
+            'license_no': 'LIC-888',
+            'phone_no': '+263773334444',
+        }
+        response = self.client.post(
+            '/api/drivers/',
+            data=self.json.dumps(payload),
+            content_type='application/json',
+            HTTP_AUTHORIZATION=f'Bearer {self.token}'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(Driver.objects.filter(license_no='LIC-888').exists())
+
+    def test_delete_driver_superuser_only(self):
+        resp_forbidden = self.client.delete(
+            f'/api/drivers/{self.driver.id}/',
+            HTTP_AUTHORIZATION=f'Bearer {self.token}'
+        )
+        self.assertEqual(resp_forbidden.status_code, 403)
+        self.assertTrue(Driver.objects.filter(id=self.driver.id).exists())
+
+        resp_ok = self.client.delete(
+            f'/api/drivers/{self.driver.id}/',
+            HTTP_AUTHORIZATION=f'Bearer {self.super_token}'
+        )
+        self.assertEqual(resp_ok.status_code, 200)
+        self.assertFalse(Driver.objects.filter(id=self.driver.id).exists())
