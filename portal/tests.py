@@ -136,3 +136,33 @@ class ContextProcessorTests(TestCase):
         self.assertEqual(result, {'pending_users_count': 2})
 
 
+class PortalRegistrationTests(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+
+    def test_register_page_renders_for_unauthenticated_user(self):
+        response = self.client.get(reverse('portal:register'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'portal/register.html')
+
+    def test_register_authenticated_user_redirects_to_dashboard(self):
+        user = User.objects.create_user(username='regauthed', password='Password123!')
+        self.client.login(username='regauthed', password='Password123!')
+        response = self.client.get(reverse('portal:register'))
+        self.assertRedirects(response, reverse('portal:dashboard'))
+
+    def test_register_new_user_creates_inactive_account_and_logs_audit(self):
+        response = self.client.post(reverse('portal:register'), {
+            'username': 'newrecruit',
+            'password1': 'StrongP@ssw0rd!123',
+            'password2': 'StrongP@ssw0rd!123',
+        })
+        self.assertRedirects(response, reverse('portal:login'))
+        user = User.objects.get(username='newrecruit')
+        self.assertFalse(user.is_active)
+        self.assertTrue(AuditLog.objects.filter(user='newrecruit', action__contains='Account registered').exists())
+
+
+
+
