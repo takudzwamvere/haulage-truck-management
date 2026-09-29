@@ -275,3 +275,77 @@ class ApiDriverEndpointTests(TestCase):
         )
         self.assertEqual(resp_ok.status_code, 200)
         self.assertFalse(Driver.objects.filter(id=self.driver.id).exists())
+
+
+class ApiJobEndpointTests(TestCase):
+
+    def setUp(self):
+        import json
+        from django.contrib.auth.models import User
+        from django.test import Client
+        self.client = Client()
+        self.json = json
+        self.user = User.objects.create_user(username='jobapiuser', password='Password123!')
+        self.token = create_access_token(self.user.id)
+        self.truck = Truck.objects.create(registration_no='TRK-J1', capacity=15.0, status='available')
+        self.driver = Driver.objects.create(name='Job Driver', license_no='LIC-J1', phone_no='0770001111')
+        self.job = Job.objects.create(
+            pick_up_location='Location X',
+            delivery_location='Location Y',
+            cargo='Minerals',
+            status='pending'
+        )
+
+    def test_assign_job_endpoint_success(self):
+        payload = {
+            'truck_id': self.truck.id,
+            'driver_id': self.driver.id,
+        }
+        response = self.client.post(
+            f'/api/jobs/{self.job.id}/assign/',
+            data=self.json.dumps(payload),
+            content_type='application/json',
+            HTTP_AUTHORIZATION=f'Bearer {self.token}'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.job.refresh_from_db()
+        self.truck.refresh_from_db()
+        self.assertEqual(self.job.status, 'in_transit')
+        self.assertEqual(self.truck.status, 'in_transit')
+
+    def test_assign_job_unavailable_truck_error(self):
+        self.truck.status = 'maintenance'
+        self.truck.save()
+        payload = {
+            'truck_id': self.truck.id,
+            'driver_id': self.driver.id,
+        }
+        response = self.client.post(
+            f'/api/jobs/{self.job.id}/assign/',
+            data=self.json.dumps(payload),
+            content_type='application/json',
+            HTTP_AUTHORIZATION=f'Bearer {self.token}'
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('not available', response.json()['detail'])
+
+    def test_update_job_status_frees_truck(self):
+        self.job.assigned_truck = self.truck
+        self.job.assigned_driver = self.driver
+        self.job.status = 'in_transit'
+        self.job.save()
+        self.truck.status = 'in_transit'
+        self.truck.save()
+
+        payload = {'status': 'completed'}
+        response = self.client.patch(
+            f'/api/jobs/{self.job.id}/status/',
+            data=self.json.dumps(payload),
+            content_type='application/json',
+            HTTP_AUTHORIZATION=f'Bearer {self.token}'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.job.refresh_from_db()
+        self.truck.refresh_from_db()
+        self.assertEqual(self.job.status, 'completed')
+        self.assertEqual(self.truck.status, 'available')
