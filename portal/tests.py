@@ -375,6 +375,84 @@ class PortalDriverViewTests(TestCase):
         self.assertFalse(Driver.objects.filter(pk=self.driver.pk).exists())
 
 
+class PortalJobViewTests(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(
+            username='jobuser',
+            password='UserPassword123!',
+            is_active=True
+        )
+        self.truck = Truck.objects.create(
+            registration_no='ZW-555',
+            capacity=15.0,
+            status='available'
+        )
+        self.driver = Driver.objects.create(
+            name='James Moyo',
+            license_no='ZW-DL-555',
+            phone_no='0775556666'
+        )
+        self.job = Job.objects.create(
+            pick_up_location='Mutare',
+            delivery_location='Harare',
+            cargo='Timber logs',
+            status='pending'
+        )
+
+    def test_job_list_and_filtering(self):
+        self.client.login(username='jobuser', password='UserPassword123!')
+        response = self.client.get(reverse('portal:job_list'), {'status': 'pending'})
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'portal/jobs/list.html')
+        self.assertContains(response, 'Mutare')
+
+    def test_job_create_view(self):
+        self.client.login(username='jobuser', password='UserPassword123!')
+        response = self.client.post(reverse('portal:job_create'), {
+            'pick_up_location': 'Chinhoyi',
+            'delivery_location': 'Kariba',
+            'cargo': 'Fish crates',
+        })
+        new_job = Job.objects.get(pick_up_location='Chinhoyi')
+        self.assertRedirects(response, reverse('portal:job_detail', args=[new_job.pk]))
+
+    def test_job_assign_success(self):
+        self.client.login(username='jobuser', password='UserPassword123!')
+        response = self.client.post(reverse('portal:job_assign', args=[self.job.pk]), {
+            'truck': self.truck.pk,
+            'driver': self.driver.pk,
+        })
+        self.assertRedirects(response, reverse('portal:job_detail', args=[self.job.pk]))
+        self.job.refresh_from_db()
+        self.truck.refresh_from_db()
+        self.assertEqual(self.job.status, 'in_transit')
+        self.assertEqual(self.job.assigned_truck, self.truck)
+        self.assertEqual(self.job.assigned_driver, self.driver)
+        self.assertEqual(self.truck.status, 'in_transit')
+
+    def test_job_update_status_completed_frees_truck(self):
+        self.client.login(username='jobuser', password='UserPassword123!')
+        # Put job in transit first
+        self.job.assigned_truck = self.truck
+        self.job.assigned_driver = self.driver
+        self.job.status = 'in_transit'
+        self.job.save()
+        self.truck.status = 'in_transit'
+        self.truck.save()
+
+        response = self.client.post(reverse('portal:job_update_status', args=[self.job.pk]), {
+            'status': 'completed',
+        })
+        self.assertRedirects(response, reverse('portal:job_detail', args=[self.job.pk]))
+        self.job.refresh_from_db()
+        self.truck.refresh_from_db()
+        self.assertEqual(self.job.status, 'completed')
+        self.assertEqual(self.truck.status, 'available')
+
+
+
 
 
 
