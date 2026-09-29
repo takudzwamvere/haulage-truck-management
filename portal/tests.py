@@ -251,6 +251,69 @@ class PortalDashboardTests(TestCase):
         self.assertEqual(response.context['pending_jobs'], 1)
 
 
+class PortalTruckViewTests(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.superuser = User.objects.create_superuser(
+            username='adminuser',
+            password='AdminPassword123!',
+            email='admin@example.com'
+        )
+        self.user = User.objects.create_user(
+            username='regularuser',
+            password='UserPassword123!',
+            is_active=True
+        )
+        self.truck = Truck.objects.create(
+            registration_no='ZW-100',
+            capacity=25.5,
+            status='available'
+        )
+
+    def test_truck_list_view(self):
+        self.client.login(username='regularuser', password='UserPassword123!')
+        response = self.client.get(reverse('portal:truck_list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'portal/trucks/list.html')
+        self.assertContains(response, 'ZW-100')
+
+    def test_truck_create_view(self):
+        self.client.login(username='regularuser', password='UserPassword123!')
+        response = self.client.post(reverse('portal:truck_create'), {
+            'registration_no': 'ZW-200',
+            'capacity': '30.0',
+            'status': 'available',
+        })
+        self.assertRedirects(response, reverse('portal:truck_list'))
+        self.assertTrue(Truck.objects.filter(registration_no='ZW-200').exists())
+        self.assertTrue(AuditLog.objects.filter(action__contains='Created truck ZW-200').exists())
+
+    def test_truck_edit_view(self):
+        self.client.login(username='regularuser', password='UserPassword123!')
+        response = self.client.post(reverse('portal:truck_edit', args=[self.truck.pk]), {
+            'registration_no': 'ZW-100',
+            'capacity': '35.0',
+            'status': 'maintenance',
+        })
+        self.assertRedirects(response, reverse('portal:truck_list'))
+        self.truck.refresh_from_db()
+        self.assertEqual(self.truck.status, 'maintenance')
+
+    def test_truck_delete_non_superuser_forbidden(self):
+        self.client.login(username='regularuser', password='UserPassword123!')
+        response = self.client.post(reverse('portal:truck_delete', args=[self.truck.pk]))
+        self.assertRedirects(response, reverse('portal:truck_list'))
+        self.assertTrue(Truck.objects.filter(pk=self.truck.pk).exists())
+
+    def test_truck_delete_superuser_success(self):
+        self.client.login(username='adminuser', password='AdminPassword123!')
+        response = self.client.post(reverse('portal:truck_delete', args=[self.truck.pk]))
+        self.assertRedirects(response, reverse('portal:truck_list'))
+        self.assertFalse(Truck.objects.filter(pk=self.truck.pk).exists())
+
+
+
 
 
 
