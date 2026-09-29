@@ -1,7 +1,7 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
-from core.models import AuditLog
+from core.models import Truck, Driver, Job, AuditLog
 
 
 class PortalRedirectTests(TestCase):
@@ -210,6 +210,46 @@ class PortalUserApprovalTests(TestCase):
         self.assertRedirects(response, reverse('portal:pending_users'))
         self.assertFalse(User.objects.filter(pk=self.pending_user.pk).exists())
         self.assertTrue(AuditLog.objects.filter(action__contains='Rejected and deleted user applicant').exists())
+
+
+class PortalDashboardTests(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(
+            username='dashuser',
+            password='DashPassword123!',
+            is_active=True
+        )
+
+    def test_dashboard_requires_login(self):
+        response = self.client.get(reverse('portal:dashboard'))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse('portal:login'), response.url)
+
+    def test_dashboard_renders_with_correct_metrics(self):
+        self.client.login(username='dashuser', password='DashPassword123!')
+
+        Truck.objects.create(registration_no='TRK-01', capacity=10, status='available')
+        Truck.objects.create(registration_no='TRK-02', capacity=20, status='in_transit')
+        Driver.objects.create(name='Driver One', license_no='LIC-01', phone_no='12345678')
+        Job.objects.create(
+            pick_up_location='City A',
+            delivery_location='City B',
+            cargo='Machinery',
+            status='pending'
+        )
+
+        response = self.client.get(reverse('portal:dashboard'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'portal/dashboard.html')
+        self.assertEqual(response.context['total_trucks'], 2)
+        self.assertEqual(response.context['available_trucks'], 1)
+        self.assertEqual(response.context['in_transit_trucks'], 1)
+        self.assertEqual(response.context['total_drivers'], 1)
+        self.assertEqual(response.context['total_jobs'], 1)
+        self.assertEqual(response.context['pending_jobs'], 1)
+
 
 
 
