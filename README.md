@@ -112,11 +112,19 @@ haulage/    — project settings and URLs
 
 Copy `.env.example` to `.env` and update the values before running in production.
 
-| Variable | Description |
-|---|---|
 | `SECRET_KEY` | Django secret key |
 | `DEBUG` | `True` or `False` |
 | `ALLOWED_HOSTS` | Comma-separated list of allowed hosts |
 | `CSRF_TRUSTED_ORIGINS` | Comma-separated list of trusted origins with scheme |
 | `DATABASE_URL` | PostgreSQL connection string |
 | `LOG_DIR` | Directory path for application log files (optional, default: `logs`) |
+
+---
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for commit style, code style, and pull request guidelines.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for a summary of notable changes per release.
