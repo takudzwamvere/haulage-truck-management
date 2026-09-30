@@ -17,7 +17,12 @@ numeric = RegexValidator(
 
 
 class Driver(models.Model):
-    """Represents a registered haulage driver."""
+    """Represents a registered haulage driver.
+
+    Drivers are associated with Job assignments and must hold a unique
+    licence number. Phone numbers are validated to contain only digits,
+    spaces, and hyphens.
+    """
     name = models.CharField(max_length=255)
     license_no = models.CharField(max_length=255, unique=True, validators=[alphanumeric])
     phone_no = models.CharField(max_length=20, validators=[numeric])
@@ -27,7 +32,11 @@ class Driver(models.Model):
 
 
 class Truck(models.Model):
-    """Represents a haulage vehicle in the fleet and its availability state."""
+    """Represents a haulage vehicle in the fleet and its availability state.
+
+    Status progresses through 'available', 'in_transit', and 'maintenance'.
+    Capacity is stored in tonnes to two decimal places.
+    """
     STATUS_CHOICES = [
         ('available', 'Available'),
         ('in_transit', 'In Transit'),
@@ -43,7 +52,12 @@ class Truck(models.Model):
 
 
 class Job(models.Model):
-    """Represents a cargo delivery assignment with status progression rules."""
+    """Represents a cargo delivery assignment with status progression rules.
+
+    Status transitions are strictly enforced: pending → in_transit or cancelled,
+    in_transit → completed or cancelled. Terminal states (completed, cancelled)
+    cannot be changed. Pick-up and delivery locations must differ.
+    """
     STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('in_transit', 'In Transit'),
@@ -92,7 +106,11 @@ class Job(models.Model):
 
 
 class AuditLog(models.Model):
-    """Immutable audit trail record for user actions and system events."""
+    """Immutable audit trail record for user actions and system events.
+
+    Records are ordered by timestamp descending. The user field stores the
+    username string at the time of the action; records are never updated.
+    """
     timestamp = models.DateTimeField(auto_now_add=True)
     user = models.CharField(max_length=255)
     action = models.CharField(max_length=500)
