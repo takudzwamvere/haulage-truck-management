@@ -3,16 +3,17 @@ from django.core.validators import RegexValidator
 from django.core.exceptions import ValidationError
 
 # regex validators for the models
-
+ALPHANUMERIC_MSG = 'Only letters, numbers, spaces and hyphens allowed'
+NUMERIC_MSG = 'Only numbers, spaces and hyphens allowed'
 
 alphanumeric = RegexValidator(
     regex=r'^[A-Za-z0-9\s\-]+$',
-    message='Only letters, numbers, spaces and hyphens allowed'
+    message=ALPHANUMERIC_MSG
 )
 
 numeric = RegexValidator(
     regex=r'^\+?[0-9\s\-]+$',
-    message='Only numbers'
+    message=NUMERIC_MSG
 )
 
 
