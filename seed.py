@@ -1,3 +1,12 @@
+"""
+seed.py — Development data seeder.
+
+Run this script to populate the database with sample trucks, drivers, and jobs
+for local development and demo purposes.
+
+Usage:
+    docker-compose exec web python seed.py
+"""
 import os
 import django
 
