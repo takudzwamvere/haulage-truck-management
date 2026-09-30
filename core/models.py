@@ -29,6 +29,7 @@ class Driver(models.Model):
     phone_no = models.CharField(max_length=20, validators=[numeric])
 
     def __str__(self):
+        """Return name and licence number."""
         return f"{self.name}: {self.license_no}"
 
 
@@ -49,6 +50,7 @@ class Truck(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='available', db_index=True)
 
     def __str__(self):
+        """Return registration number and current status."""
         return f"{self.registration_no} - {self.status}"
 
 
@@ -85,9 +87,11 @@ class Job(models.Model):
     modified_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
+        """Return job ID and current status."""
         return f"Job {self.id} ({self.status})"
 
     def clean(self):
+        """Validate location uniqueness and enforce status transition rules."""
         if self.pick_up_location and self.delivery_location:
             if self.pick_up_location.strip().lower() == self.delivery_location.strip().lower():
                 raise ValidationError({
