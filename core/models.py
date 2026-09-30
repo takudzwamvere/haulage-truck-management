@@ -65,6 +65,8 @@ class Job(models.Model):
         ('cancelled', 'Cancelled'),
     ]
 
+    # State machine: maps each status to the statuses it can legally transition to.
+    # Terminal states (completed, cancelled) have empty lists — no further moves allowed.
     VALID_TRANSITIONS = {
         'pending': ['in_transit', 'cancelled'],
         'in_transit': ['completed', 'cancelled'],
