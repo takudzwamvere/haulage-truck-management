@@ -124,6 +124,8 @@ class AuditLog(models.Model):
 
     class Meta:
         ordering = ['-timestamp']
+        verbose_name = 'Audit Log'
+        verbose_name_plural = 'Audit Logs'
 
     def __str__(self):
         return f"[{self.timestamp}] {self.user}: {self.action}"
