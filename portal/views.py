@@ -10,9 +10,14 @@ from django.db.models import Exists, OuterRef, Count, Q
 from django.db import transaction
 from django.views.decorators.http import require_POST
 from core.models import Truck, Driver, Job, AuditLog
-from .forms import TruckForm, DriverForm, JobForm, AssignJobForm, UpdateStatusForm
+from .forms import TruckForm, DriverForm, JobForm, AssignJobForm, UpdateStatusForm, DriverProfileForm
 
 logger = logging.getLogger('core')
+
+
+def is_driver_user(user):
+    """Check if the user is a driver (has driver_profile and not staff/admin)."""
+    return bool(hasattr(user, 'driver_profile') and user.driver_profile is not None and not user.is_superuser and not user.is_staff)
 
 
 def audit(username, action):
@@ -171,7 +176,11 @@ def truck_list(request):
 
 @login_required
 def truck_create(request):
-    form = TruckForm(request.POST or None)
+    if is_driver_user(request.user):
+        messages.error(request, 'Drivers do not have permission to create trucks.')
+        return redirect('portal:truck_list')
+
+    form = TruckForm(request.POST or None, request.FILES or None, user=request.user)
     if form.is_valid():
         truck = form.save()
         audit(request.user.username, f'Created truck {truck.registration_no}')
@@ -186,8 +195,12 @@ def truck_create(request):
 
 @login_required
 def truck_edit(request, pk):
+    if is_driver_user(request.user):
+        messages.error(request, 'Drivers do not have permission to edit trucks.')
+        return redirect('portal:truck_list')
+
     truck = get_object_or_404(Truck, pk=pk)
-    form = TruckForm(request.POST or None, instance=truck)
+    form = TruckForm(request.POST or None, request.FILES or None, instance=truck, user=request.user)
     if form.is_valid():
         form.save()
         audit(request.user.username, f'Updated truck {truck.registration_no}')
@@ -221,19 +234,50 @@ def truck_delete(request, pk):
 
 @login_required
 def driver_list(request):
-    active_jobs = Job.objects.filter(
-        assigned_driver=OuterRef('pk'),
-        status__in=['pending', 'in_transit']
-    )
-    qs = Driver.objects.annotate(has_active_job=Exists(active_jobs)).order_by('id')
+    if is_driver_user(request.user):
+        qs = Driver.objects.filter(pk=request.user.driver_profile.pk)
+    else:
+        active_jobs = Job.objects.filter(
+            assigned_driver=OuterRef('pk'),
+            status__in=['pending', 'in_transit']
+        )
+        qs = Driver.objects.annotate(has_active_job=Exists(active_jobs)).order_by('id')
     paginator = Paginator(qs, 10)
     page_obj = paginator.get_page(request.GET.get('page'))
     return render(request, 'portal/drivers/list.html', {'page_obj': page_obj})
 
 
 @login_required
+def driver_my_profile(request):
+    """Driver self-service profile page: phone_no and photo only."""
+    driver = getattr(request.user, 'driver_profile', None)
+    if not driver:
+        messages.error(request, 'No driver profile is associated with your account.')
+        return redirect('portal:dashboard')
+
+    if request.method == 'POST':
+        form = DriverProfileForm(request.POST, request.FILES, instance=driver)
+        if form.is_valid():
+            form.save()
+            audit(request.user.username, 'Updated self driver profile (phone/photo)')
+            messages.success(request, 'Your profile has been updated.')
+            return redirect('portal:my_profile')
+    else:
+        form = DriverProfileForm(instance=driver)
+
+    return render(request, 'portal/drivers/my_profile.html', {
+        'driver': driver,
+        'form': form,
+    })
+
+
+@login_required
 def driver_create(request):
-    form = DriverForm(request.POST or None)
+    if is_driver_user(request.user):
+        messages.error(request, 'Drivers do not have permission to create drivers.')
+        return redirect('portal:driver_list')
+
+    form = DriverForm(request.POST or None, request.FILES or None, user=request.user)
     if form.is_valid():
         driver = form.save()
         audit(request.user.username, f'Created driver {driver.name}')
@@ -249,7 +293,13 @@ def driver_create(request):
 @login_required
 def driver_edit(request, pk):
     driver = get_object_or_404(Driver, pk=pk)
-    form = DriverForm(request.POST or None, instance=driver)
+    if is_driver_user(request.user):
+        if request.user.driver_profile.pk != pk:
+            from django.http import HttpResponseForbidden
+            return HttpResponseForbidden('You can only edit your own profile.')
+        return redirect('portal:my_profile')
+
+    form = DriverForm(request.POST or None, request.FILES or None, instance=driver, user=request.user)
     if form.is_valid():
         form.save()
         audit(request.user.username, f'Updated driver {driver.name}')
@@ -261,6 +311,7 @@ def driver_edit(request, pk):
         'title': f'Edit Driver — {driver.name}',
         'driver': driver,
     })
+
 
 
 @login_required
@@ -284,9 +335,12 @@ def driver_delete(request, pk):
 @login_required
 def job_list(request):
     status_filter = request.GET.get('status', '')
-    qs = Job.objects.select_related('assigned_truck', 'assigned_driver').order_by('-created_at')
-    if status_filter in ['pending', 'in_transit', 'completed', 'cancelled']:
-        qs = qs.filter(status=status_filter)
+    if is_driver_user(request.user):
+        qs = Job.objects.select_related('assigned_truck', 'assigned_driver').filter(assigned_driver=request.user.driver_profile).order_by('-created_at')
+    else:
+        qs = Job.objects.select_related('assigned_truck', 'assigned_driver').order_by('-created_at')
+        if status_filter in ['pending', 'in_transit', 'completed', 'cancelled']:
+            qs = qs.filter(status=status_filter)
     paginator = Paginator(qs, 10)
     page_obj = paginator.get_page(request.GET.get('page'))
     return render(request, 'portal/jobs/list.html', {
@@ -297,6 +351,10 @@ def job_list(request):
 
 @login_required
 def job_create(request):
+    if is_driver_user(request.user):
+        messages.error(request, 'Drivers have read-only access to jobs.')
+        return redirect('portal:job_list')
+
     form = JobForm(request.POST or None)
     if form.is_valid():
         job = form.save()
@@ -315,17 +373,33 @@ def job_detail(request, pk):
     job = get_object_or_404(
         Job.objects.select_related('assigned_truck', 'assigned_driver'), pk=pk
     )
+    if is_driver_user(request.user):
+        if job.assigned_driver != request.user.driver_profile:
+            messages.error(request, 'You can only view jobs assigned to you.')
+            return redirect('portal:job_list')
+        return render(request, 'portal/jobs/detail.html', {
+            'job': job,
+            'assign_form': None,
+            'status_form': None,
+            'is_driver': True,
+        })
+
     assign_form = AssignJobForm() if job.status == 'pending' else None
     status_form = UpdateStatusForm(current_status=job.status)
     return render(request, 'portal/jobs/detail.html', {
         'job': job,
         'assign_form': assign_form,
         'status_form': status_form,
+        'is_driver': False,
     })
 
 
 @login_required
 def job_edit(request, pk):
+    if is_driver_user(request.user):
+        messages.error(request, 'Drivers have read-only access to jobs.')
+        return redirect('portal:job_list')
+
     job = get_object_or_404(Job, pk=pk)
     form = JobForm(request.POST or None, instance=job)
     if form.is_valid():
@@ -343,6 +417,10 @@ def job_edit(request, pk):
 
 @login_required
 def job_delete(request, pk):
+    if is_driver_user(request.user):
+        messages.error(request, 'Drivers have read-only access to jobs.')
+        return redirect('portal:job_list')
+
     if not request.user.is_superuser:
         messages.error(request, 'You do not have permission to delete.')
         return redirect('portal:job_list')
@@ -359,6 +437,10 @@ def job_delete(request, pk):
 
 @login_required
 def job_assign(request, pk):
+    if is_driver_user(request.user):
+        messages.error(request, 'Drivers have read-only access to jobs.')
+        return redirect('portal:job_list')
+
     if request.method != 'POST':
         return redirect('portal:job_detail', pk=pk)
 
@@ -406,6 +488,10 @@ def job_assign(request, pk):
 
 @login_required
 def job_update_status(request, pk):
+    if is_driver_user(request.user):
+        messages.error(request, 'Drivers have read-only access to jobs.')
+        return redirect('portal:job_list')
+
     if request.method != 'POST':
         return redirect('portal:job_detail', pk=pk)
 

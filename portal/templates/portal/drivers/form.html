@@ -7,8 +7,18 @@
 <div class="max-w-2xl mx-auto mt-8">
   <div class="bg-white shadow sm:rounded-lg">
     <div class="px-4 py-5 sm:p-6">
-      <form method="post" novalidate>
+      <form method="post" enctype="multipart/form-data" novalidate>
         {% csrf_token %}
+
+        {% if driver and driver.photo %}
+        <div class="mb-6 flex items-center space-x-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+          <img src="{{ driver.photo.url }}" alt="{{ driver.name }}" class="h-24 w-24 object-cover rounded-md shadow-sm border border-gray-300" loading="lazy">
+          <div>
+            <p class="text-sm font-medium text-gray-900">Current Photo</p>
+            <p class="text-xs text-gray-500">Upload a new photo below to replace it.</p>
+          </div>
+        </div>
+        {% endif %}
 
         <div class="space-y-6">
           {% for field in form %}

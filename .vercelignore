@@ -1,0 +1,38 @@
+# Version Control
+.git/
+.gitignore
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Local SQLite databases
+*.sqlite3
+db.sqlite3
+
+# Docker configuration
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Test suites
+core/tests.py
+portal/tests.py
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Python virtual environment & cache
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+
+# Logs
+logs/
+*.log
+package.json
+package-lock.json

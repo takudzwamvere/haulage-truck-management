@@ -7,11 +7,23 @@ _SELECT = 'mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 bg-whit
 
 
 
+from django.contrib.auth.models import User
+
+PHOTO_HELP_TEXT = "Max file size: 2 MB. Formats: JPEG, PNG, WebP. (Note: Vercel serverless request body is capped at 4.5 MB)."
+
+
 class TruckForm(forms.ModelForm):
     """Form for adding and updating fleet trucks."""
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Truck photos editable by staff and admin only
+        if user and not (user.is_superuser or user.is_staff):
+            if 'photo' in self.fields:
+                del self.fields['photo']
+
     class Meta:
         model = Truck
-        fields = ['registration_no', 'capacity', 'status']
+        fields = ['registration_no', 'capacity', 'status', 'photo']
         widgets = {
             'registration_no': forms.TextInput(attrs={
                 'placeholder': 'e.g. ABC-1234',
@@ -25,19 +37,27 @@ class TruckForm(forms.ModelForm):
             'status': forms.Select(attrs={
                 'class': _SELECT,
             }),
+            'photo': forms.FileInput(attrs={
+                'class': _INPUT,
+                'accept': 'image/jpeg,image/png,image/webp',
+            }),
         }
         labels = {
             'registration_no': 'Registration Number',
             'capacity': 'Capacity (tonnes)',
             'status': 'Status',
+            'photo': 'Truck Photo',
+        }
+        help_texts = {
+            'photo': PHOTO_HELP_TEXT,
         }
 
 
 class DriverForm(forms.ModelForm):
-    """Form for registering and updating driver profiles."""
+    """Form for registering and updating driver profiles by administrators."""
     class Meta:
         model = Driver
-        fields = ['name', 'license_no', 'phone_no']
+        fields = ['name', 'license_no', 'phone_no', 'user', 'photo']
         widgets = {
             'name': forms.TextInput(attrs={
                 'placeholder': 'e.g. John Doe',
@@ -51,11 +71,56 @@ class DriverForm(forms.ModelForm):
                 'placeholder': 'e.g. +263771234567',
                 'class': _INPUT,
             }),
+            'user': forms.Select(attrs={
+                'class': _SELECT,
+            }),
+            'photo': forms.FileInput(attrs={
+                'class': _INPUT,
+                'accept': 'image/jpeg,image/png,image/webp',
+            }),
         }
         labels = {
             'name': 'Full Name',
             'license_no': 'License Number',
             'phone_no': 'Phone Number',
+            'user': 'Linked User Account',
+            'photo': 'Driver Photo',
+        }
+        help_texts = {
+            'photo': PHOTO_HELP_TEXT,
+            'user': 'Optionally link a user account for driver self-service portal access.',
+        }
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['user'].required = False
+        self.fields['user'].empty_label = '— No linked user account —'
+        if user and not (user.is_superuser or user.is_staff):
+            if 'user' in self.fields:
+                del self.fields['user']
+
+
+class DriverProfileForm(forms.ModelForm):
+    """Self-service form for drivers: phone_no and photo only. name and license_no cannot be changed."""
+    class Meta:
+        model = Driver
+        fields = ['phone_no', 'photo']
+        widgets = {
+            'phone_no': forms.TextInput(attrs={
+                'placeholder': 'e.g. +263771234567',
+                'class': _INPUT,
+            }),
+            'photo': forms.FileInput(attrs={
+                'class': _INPUT,
+                'accept': 'image/jpeg,image/png,image/webp',
+            }),
+        }
+        labels = {
+            'phone_no': 'Phone Number',
+            'photo': 'Profile Photo',
+        }
+        help_texts = {
+            'photo': PHOTO_HELP_TEXT,
         }
 
 

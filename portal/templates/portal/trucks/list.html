@@ -15,7 +15,7 @@
       <table class="min-w-full divide-y divide-gray-200">
       <thead class="bg-gray-50">
         <tr>
-          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Photo</th>
           <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Registration No.</th>
           <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Capacity (t)</th>
           <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -25,7 +25,17 @@
       <tbody class="bg-white divide-y divide-gray-200">
         {% for truck in page_obj %}
         <tr class="hover:bg-gray-50">
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ truck.id }}</td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            {% if truck.photo %}
+              <img src="{{ truck.photo.url }}" alt="{{ truck.registration_no }}" class="h-10 w-14 rounded object-cover shadow-sm border border-gray-200" loading="lazy">
+            {% else %}
+              <div class="h-10 w-14 rounded bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400">
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+              </div>
+            {% endif %}
+          </td>
           <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ truck.registration_no }}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ truck.capacity }}</td>
           <td class="px-6 py-4 whitespace-nowrap">

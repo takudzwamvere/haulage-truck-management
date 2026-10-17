@@ -11,15 +11,18 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 import os
+import sys
 from pathlib import Path
 
 import dj_database_url
 from dotenv import load_dotenv
 
-load_dotenv()
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load environment variables: .env first, then .env.local (override/extend)
+load_dotenv(BASE_DIR / '.env')
+load_dotenv(BASE_DIR / '.env.local', override=True)
 
 
 # Quick-start development settings - unsuitable for production
@@ -29,17 +32,34 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-dev-key-change-in-production')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DEBUG', 'False') == 'True' 
+DEBUG = os.environ.get('DEBUG', 'False').lower() in ('true', '1', 'yes')
 
-ALLOWED_HOSTS = [
-    host.strip() for host in os.environ.get('ALLOWED_HOSTS', 'localhost').split(',')
-    if host.strip()
-]
+# Host configuration - allow .vercel.app by default
+raw_allowed_hosts = os.environ.get('ALLOWED_HOSTS', '')
+if raw_allowed_hosts:
+    ALLOWED_HOSTS = [host.strip() for host in raw_allowed_hosts.split(',') if host.strip()]
+else:
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
+if '.vercel.app' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('.vercel.app')
+if 'testserver' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('testserver')
+
+# CSRF Trusted Origins
+raw_csrf_origins = os.environ.get('CSRF_TRUSTED_ORIGINS', '')
 CSRF_TRUSTED_ORIGINS = [
-    origin for origin in os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',')
-    if origin
+    origin.strip() for origin in raw_csrf_origins.split(',')
+    if origin.strip()
 ]
+if not any('.vercel.app' in origin for origin in CSRF_TRUSTED_ORIGINS):
+    CSRF_TRUSTED_ORIGINS.append('https://*.vercel.app')
+
+# HTTPS & Proxy headers for reverse proxy (Vercel)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
 
 # Application definition
 
@@ -50,6 +70,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'storages',
     'core',
     'ninja',
     'portal',
@@ -89,12 +110,48 @@ WSGI_APPLICATION = 'haulage.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
+LOCAL_POSTGRES_DEFAULT = 'postgres://haulage_user:haulage_pass@localhost:5432/haulage'
+is_migrating = any(cmd in sys.argv for cmd in ['migrate', 'makemigrations'])
+is_testing = 'test' in sys.argv
+
+# If testing, use isolated sqlite
+if is_testing:
+    db_conn_str = f"sqlite:///{BASE_DIR / 'test_db.sqlite3'}"
+# Use direct URL for manage.py migrate, pooled URL for the app
+elif is_migrating and (os.environ.get('DATABASE_URL_UNPOOLED') or os.environ.get('DIRECT_URL')):
+    db_conn_str = os.environ.get('DATABASE_URL_UNPOOLED') or os.environ.get('DIRECT_URL')
+elif os.environ.get('DATABASE_URL'):
+    db_conn_str = os.environ['DATABASE_URL']
+elif os.environ.get('DATABASE_URL_UNPOOLED'):
+    db_conn_str = os.environ['DATABASE_URL_UNPOOLED']
+elif os.environ.get('DIRECT_URL'):
+    db_conn_str = os.environ['DIRECT_URL']
+else:
+    db_conn_str = LOCAL_POSTGRES_DEFAULT
+
+# Neon Postgres and production connections require SSL
+ssl_required = bool(
+    db_conn_str.startswith('postgres') and
+    ('neon.tech' in db_conn_str or 'sslmode=require' in db_conn_str or not any(
+        local_host in db_conn_str for local_host in ['localhost', '127.0.0.1', '@db:']
+    ))
+)
+
 DATABASES = {
-    'default': dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
-        conn_max_age=600,
+    'default': dj_database_url.parse(
+        db_conn_str,
+        conn_max_age=0,
+        ssl_require=ssl_required,
     )
 }
+
+DATABASES['default']['CONN_MAX_AGE'] = 0
+
+if ssl_required:
+    DATABASES['default'].setdefault('OPTIONS', {})['sslmode'] = 'require'
+
+# Set DISABLE_SERVER_SIDE_CURSORS for PgBouncer / Neon transaction pooling mode
+DATABASES['default']['DISABLE_SERVER_SIDE_CURSORS'] = True
 
 
 # Password validation
@@ -115,7 +172,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-# Logging
+# Logging - Stdout only for serverless (no local disk writes)
 
 LOGGING = {
     'version': 1,
@@ -131,17 +188,14 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
-        'file': {
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': BASE_DIR / os.environ.get('LOG_DIR', 'logs') / 'core.log',
-            'maxBytes': 10 * 1024 * 1024,  # 10 MB
-            'backupCount': 5,
-            'formatter': 'verbose',
-        },
     },
     'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
         'core': {
-            'handlers': ['console', 'file'],
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': False,
         },
@@ -162,9 +216,55 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Object Storage (Neon Object Storage via django-storages and boto3)
+AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
+AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME', 'assets')
+AWS_S3_ENDPOINT_URL = os.environ.get('AWS_ENDPOINT_URL_S3')
+AWS_S3_REGION_NAME = os.environ.get('AWS_REGION', 'us-east-2')
+AWS_S3_ADDRESSING_STYLE = 'path'
+AWS_QUERYSTRING_AUTH = True
+AWS_S3_SIGNATURE_VERSION = 's3v4'
+AWS_DEFAULT_ACL = None
+
+if AWS_S3_ENDPOINT_URL and AWS_ACCESS_KEY_ID:
+    STORAGES = {
+        'default': {
+            'BACKEND': 'storages.backends.s3.S3Storage',
+            'OPTIONS': {
+                'bucket_name': AWS_STORAGE_BUCKET_NAME,
+                'endpoint_url': AWS_S3_ENDPOINT_URL,
+                'region_name': AWS_S3_REGION_NAME,
+                'access_key': AWS_ACCESS_KEY_ID,
+                'secret_key': AWS_SECRET_ACCESS_KEY,
+                'addressing_style': AWS_S3_ADDRESSING_STYLE,
+                'querystring_auth': AWS_QUERYSTRING_AUTH,
+                'signature_version': AWS_S3_SIGNATURE_VERSION,
+                'default_acl': AWS_DEFAULT_ACL,
+            },
+        },
+        'staticfiles': {
+            'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+        },
+    }
+else:
+    STORAGES = {
+        'default': {
+            'BACKEND': 'django.core.files.storage.FileSystemStorage',
+        },
+        'staticfiles': {
+            'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+        },
+    }
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

@@ -1,0 +1,5 @@
+[tool.vercel]
+entrypoint = "haulage.wsgi:application"
+
+[tool.vercel.scripts]
+build = "python manage.py collectstatic --noinput"

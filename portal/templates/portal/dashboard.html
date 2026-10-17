@@ -2,7 +2,14 @@
 
 {% block title %}Dashboard{% endblock %}
 {% block page_title %}System Dashboard{% endblock %}
-{% block page_subtitle %}Overview of platform statistics{% endblock %}
+{% block page_subtitle %}
+  <span class="flex items-center gap-2">
+    <span>Overview of platform statistics</span>
+    <span id="live-indicator" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800" title="Auto-refreshing every 15s">
+      <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> Live
+    </span>
+  </span>
+{% endblock %}
 
 {% block content %}
 <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
@@ -10,28 +17,28 @@
   <div class="bg-white overflow-hidden shadow rounded-lg">
     <div class="px-4 py-5 sm:p-6 text-center">
       <dt class="text-sm font-medium text-gray-500 truncate">Total Trucks</dt>
-      <dd class="mt-1 text-3xl font-semibold text-gray-900">{{ total_trucks }}</dd>
+      <dd id="stat-total-trucks" class="mt-1 text-3xl font-semibold text-gray-900">{{ total_trucks }}</dd>
     </div>
   </div>
   <!-- Available Trucks -->
   <div class="bg-green-600 overflow-hidden shadow rounded-lg">
     <div class="px-4 py-5 sm:p-6 text-center">
       <dt class="text-sm font-medium text-green-100 truncate">Available</dt>
-      <dd class="mt-1 text-3xl font-semibold text-white">{{ available_trucks }}</dd>
+      <dd id="stat-available-trucks" class="mt-1 text-3xl font-semibold text-white">{{ available_trucks }}</dd>
     </div>
   </div>
   <!-- In Transit Trucks -->
   <div class="bg-blue-600 overflow-hidden shadow rounded-lg">
     <div class="px-4 py-5 sm:p-6 text-center">
       <dt class="text-sm font-medium text-blue-100 truncate">In Transit</dt>
-      <dd class="mt-1 text-3xl font-semibold text-white">{{ in_transit_trucks }}</dd>
+      <dd id="stat-in-transit-trucks" class="mt-1 text-3xl font-semibold text-white">{{ in_transit_trucks }}</dd>
     </div>
   </div>
   <!-- Maintenance Trucks -->
   <div class="bg-yellow-400 overflow-hidden shadow rounded-lg">
     <div class="px-4 py-5 sm:p-6 text-center">
       <dt class="text-sm font-medium text-yellow-900 truncate">Maintenance</dt>
-      <dd class="mt-1 text-3xl font-semibold text-yellow-900">{{ maintenance_trucks }}</dd>
+      <dd id="stat-maintenance-trucks" class="mt-1 text-3xl font-semibold text-yellow-900">{{ maintenance_trucks }}</dd>
     </div>
   </div>
 </div>
@@ -40,15 +47,15 @@
   <div class="bg-white overflow-hidden shadow rounded-lg">
     <div class="px-4 py-5 sm:p-6 text-center">
       <dt class="text-sm font-medium text-gray-500 truncate">Total Drivers</dt>
-      <dd class="mt-1 text-3xl font-semibold text-gray-900">{{ total_drivers }}</dd>
+      <dd id="stat-total-drivers" class="mt-1 text-3xl font-semibold text-gray-900">{{ total_drivers }}</dd>
     </div>
   </div>
   <div class="bg-white overflow-hidden shadow rounded-lg sm:col-span-2 lg:col-span-1">
     <div class="px-4 py-5 sm:p-6 text-center">
       <dt class="text-sm font-medium text-gray-500 truncate">Total Jobs</dt>
-      <dd class="mt-1 text-3xl font-semibold text-gray-900">{{ total_jobs }}</dd>
-      <div class="mt-1 text-xs text-gray-500 font-medium tracking-wide">
-        P: {{ pending_jobs }} | T: {{ active_jobs }} | C: {{ completed_jobs }}
+      <dd id="stat-total-jobs" class="mt-1 text-3xl font-semibold text-gray-900">{{ total_jobs }}</dd>
+      <div id="stat-jobs-breakdown" class="mt-1 text-xs text-gray-500 font-medium tracking-wide">
+        P: <span id="stat-pending-jobs">{{ pending_jobs }}</span> | T: <span id="stat-active-jobs">{{ active_jobs }}</span> | C: <span id="stat-completed-jobs">{{ completed_jobs }}</span>
       </div>
     </div>
   </div>
@@ -69,7 +76,7 @@
           <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
         </tr>
       </thead>
-      <tbody class="bg-white divide-y divide-gray-200">
+      <tbody id="recent-jobs-tbody" class="bg-white divide-y divide-gray-200">
         {% for job in recent_jobs %}
         <tr class="hover:bg-gray-50">
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ job.id }}</td>
@@ -83,7 +90,7 @@
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ job.created_at|date:"M j, Y" }}</td>
         </tr>
         {% empty %}
-        <tr>
+        <tr id="empty-jobs-row">
           <td colspan="4" class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500">No jobs found</td>
         </tr>
         {% endfor %}
@@ -91,4 +98,169 @@
     </table>
   </div>
 </div>
+
+<script>
+  (function () {
+    const BASE_INTERVAL_MS = 15000;
+    const MAX_INTERVAL_MS = 120000;
+    let currentInterval = BASE_INTERVAL_MS;
+    let timerId = null;
+
+    const indicator = document.getElementById('live-indicator');
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function formatStatusBadge(status) {
+      switch (status) {
+        case 'completed':
+          return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Completed</span>';
+        case 'in_transit':
+          return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">In Transit</span>';
+        case 'pending':
+          return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Pending</span>';
+        default:
+          return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">' + escapeHtml(status) + '</span>';
+      }
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '';
+      try {
+        const d = new Date(dateStr);
+        return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+      } catch (e) {
+        return dateStr;
+      }
+    }
+
+    async function pollDashboard() {
+      // Pause if user switched tabs
+      if (document.hidden) {
+        return;
+      }
+
+      try {
+        const [trucksRes, jobsRes] = await Promise.all([
+          fetch('/api/trucks/', { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' }),
+          fetch('/api/jobs/', { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+        ]);
+
+        if (!trucksRes.ok || !jobsRes.ok) {
+          throw new Error('API fetch error: ' + trucksRes.status + ' / ' + jobsRes.status);
+        }
+
+        const trucksData = await trucksRes.json();
+        const jobsData = await jobsRes.json();
+
+        const trucks = Array.isArray(trucksData) ? trucksData : (trucksData.items || []);
+        const jobs = Array.isArray(jobsData) ? jobsData : (jobsData.items || []);
+
+        // Update truck counts
+        let available = 0;
+        let inTransit = 0;
+        let maintenance = 0;
+        trucks.forEach(function (t) {
+          if (t.status === 'available') available++;
+          else if (t.status === 'in_transit') inTransit++;
+          else if (t.status === 'maintenance') maintenance++;
+        });
+
+        const totalTrucksEl = document.getElementById('stat-total-trucks');
+        const availTrucksEl = document.getElementById('stat-available-trucks');
+        const transitTrucksEl = document.getElementById('stat-in-transit-trucks');
+        const maintTrucksEl = document.getElementById('stat-maintenance-trucks');
+
+        if (totalTrucksEl) totalTrucksEl.textContent = (trucksData.count !== undefined) ? trucksData.count : trucks.length;
+        if (availTrucksEl) availTrucksEl.textContent = available;
+        if (transitTrucksEl) transitTrucksEl.textContent = inTransit;
+        if (maintTrucksEl) maintTrucksEl.textContent = maintenance;
+
+        // Update jobs stats
+        let pending = 0;
+        let active = 0;
+        let completed = 0;
+        jobs.forEach(function (j) {
+          if (j.status === 'pending') pending++;
+          else if (j.status === 'in_transit') active++;
+          else if (j.status === 'completed') completed++;
+        });
+
+        const totalJobsEl = document.getElementById('stat-total-jobs');
+        const pendingJobsEl = document.getElementById('stat-pending-jobs');
+        const activeJobsEl = document.getElementById('stat-active-jobs');
+        const compJobsEl = document.getElementById('stat-completed-jobs');
+
+        if (totalJobsEl) totalJobsEl.textContent = (jobsData.count !== undefined) ? jobsData.count : jobs.length;
+        if (pendingJobsEl) pendingJobsEl.textContent = pending;
+        if (activeJobsEl) activeJobsEl.textContent = active;
+        if (compJobsEl) compJobsEl.textContent = completed;
+
+        // Update Recent Jobs Table (show up to 5 most recent)
+        const tbody = document.getElementById('recent-jobs-tbody');
+        if (tbody) {
+          if (jobs.length === 0) {
+            tbody.innerHTML = '<tr id="empty-jobs-row"><td colspan="4" class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500">No jobs found</td></tr>';
+          } else {
+            const recent = jobs.slice(0, 5);
+            let html = '';
+            recent.forEach(function (job) {
+              html += '<tr class="hover:bg-gray-50">' +
+                '<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">' + escapeHtml(job.id) + '</td>' +
+                '<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">' + escapeHtml(job.pick_up_location) + ' &rarr; ' + escapeHtml(job.delivery_location) + '</td>' +
+                '<td class="px-6 py-4 whitespace-nowrap">' + formatStatusBadge(job.status) + '</td>' +
+                '<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">' + formatDate(job.created_at) + '</td>' +
+                '</tr>';
+            });
+            tbody.innerHTML = html;
+          }
+        }
+
+        // Reset backoff on successful request
+        currentInterval = BASE_INTERVAL_MS;
+        if (indicator) {
+          indicator.className = 'inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800';
+          indicator.innerHTML = '<span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> Live';
+        }
+      } catch (err) {
+        // Exponential backoff on error
+        currentInterval = Math.min(currentInterval * 2, MAX_INTERVAL_MS);
+        if (indicator) {
+          indicator.className = 'inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800';
+          indicator.innerHTML = '<span class="w-2 h-2 rounded-full bg-yellow-500"></span> Reconnecting...';
+        }
+      } finally {
+        // Schedule next poll unless hidden
+        if (!document.hidden) {
+          timerId = setTimeout(pollDashboard, currentInterval);
+        }
+      }
+    }
+
+    // Handle tab visibility change
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) {
+        if (timerId) {
+          clearTimeout(timerId);
+          timerId = null;
+        }
+      } else {
+        // Tab visible again: reset backoff and fetch immediately
+        currentInterval = BASE_INTERVAL_MS;
+        pollDashboard();
+      }
+    });
+
+    // Initial schedule after initial render
+    timerId = setTimeout(pollDashboard, BASE_INTERVAL_MS);
+  })();
+</script>
 {% endblock %}
+

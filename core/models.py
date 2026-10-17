@@ -1,6 +1,11 @@
+import secrets
+from pathlib import Path
 from django.db import models
+from django.contrib.auth.models import User
 from django.core.validators import RegexValidator
 from django.core.exceptions import ValidationError
+from django.db.models.signals import pre_save, post_delete
+from django.dispatch import receiver
 
 # regex validators for the models
 ALPHANUMERIC_MSG = 'Only letters, numbers, spaces and hyphens allowed'
@@ -16,17 +21,71 @@ numeric = RegexValidator(
     message=NUMERIC_MSG
 )
 
+MAX_IMAGE_SIZE_BYTES = 2 * 1024 * 1024  # 2 MB
+ALLOWED_IMAGE_FORMATS = {'JPEG', 'PNG', 'WEBP'}
+
+
+def validate_image_file(file):
+    """Validate uploaded image: max 2 MB, JPEG/PNG/WebP, verified with Pillow."""
+    if not file:
+        return
+    if file.size > MAX_IMAGE_SIZE_BYTES:
+        raise ValidationError(
+            f"File size ({file.size / (1024 * 1024):.2f} MB) exceeds maximum allowed size of 2 MB."
+        )
+    try:
+        from PIL import Image
+        file.seek(0)
+        img = Image.open(file)
+        img.verify()
+        img_format = (img.format or '').upper()
+        file.seek(0)
+    except Exception:
+        raise ValidationError("Invalid or corrupted image file.")
+    if img_format not in ALLOWED_IMAGE_FORMATS:
+        raise ValidationError(
+            f"Unsupported image format '{img_format}'. Allowed formats are JPEG, PNG, and WebP."
+        )
+
+
+def driver_photo_path(instance, filename):
+    """Generate upload path for driver photo using object id and random suffix."""
+    ext = Path(filename).suffix.lower()
+    if ext not in ['.jpg', '.jpeg', '.png', '.webp']:
+        ext = '.jpg'
+    obj_id = instance.id or secrets.token_hex(4)
+    suffix = secrets.token_hex(6)
+    return f"drivers/{obj_id}_{suffix}{ext}"
+
+
+def truck_photo_path(instance, filename):
+    """Generate upload path for truck photo using object id and random suffix."""
+    ext = Path(filename).suffix.lower()
+    if ext not in ['.jpg', '.jpeg', '.png', '.webp']:
+        ext = '.jpg'
+    obj_id = instance.id or secrets.token_hex(4)
+    suffix = secrets.token_hex(6)
+    return f"trucks/{obj_id}_{suffix}{ext}"
+
 
 class Driver(models.Model):
     """Represents a registered haulage driver.
 
     Drivers are associated with Job assignments and must hold a unique
     licence number. Phone numbers are validated to contain only digits,
-    spaces, and hyphens.
+    spaces, and hyphens. Can optionally be linked to a User account for self-service.
     """
+    user = models.OneToOneField(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='driver_profile'
+    )
     name = models.CharField(max_length=255)
     license_no = models.CharField(max_length=255, unique=True, validators=[alphanumeric])
     phone_no = models.CharField(max_length=20, validators=[numeric])
+    photo = models.ImageField(upload_to=driver_photo_path, null=True, blank=True, validators=[validate_image_file])
 
     def __str__(self):
         """Return name and licence number."""
@@ -48,6 +107,7 @@ class Truck(models.Model):
     registration_no = models.CharField(max_length=20, unique=True, validators=[alphanumeric])
     capacity = models.DecimalField(max_digits=10, decimal_places=2)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='available', db_index=True)
+    photo = models.ImageField(upload_to=truck_photo_path, null=True, blank=True, validators=[validate_image_file])
 
     def __str__(self):
         """Return registration number and current status."""
@@ -129,3 +189,27 @@ class AuditLog(models.Model):
 
     def __str__(self):
         return f"[{self.timestamp}] {self.user}: {self.action}"
+
+
+# ─── Photo Cleanup Signals ───────────────────────────────────────
+
+@receiver(post_delete, sender=Driver)
+@receiver(post_delete, sender=Truck)
+def delete_photo_on_delete(sender, instance, **kwargs):
+    """Delete photo file from storage when model record is deleted."""
+    if instance.photo and instance.photo.name:
+        instance.photo.delete(save=False)
+
+
+@receiver(pre_save, sender=Driver)
+@receiver(pre_save, sender=Truck)
+def delete_old_photo_on_change(sender, instance, **kwargs):
+    """Delete old photo file from storage when photo is replaced."""
+    if not instance.pk:
+        return
+    try:
+        old_instance = sender.objects.get(pk=instance.pk)
+    except sender.DoesNotExist:
+        return
+    if old_instance.photo and old_instance.photo.name and old_instance.photo != instance.photo:
+        old_instance.photo.delete(save=False)

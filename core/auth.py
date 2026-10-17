@@ -42,6 +42,11 @@ def decode_access_token(token):
 
 
 class AuthBearer(HttpBearer):
+    def __call__(self, request):
+        if hasattr(request, 'user') and request.user.is_authenticated:
+            return request.user
+        return super().__call__(request)
+
     def authenticate(self, request, token):
         user_id = decode_access_token(token)
         if not user_id:

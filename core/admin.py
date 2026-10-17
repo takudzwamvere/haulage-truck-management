@@ -2,21 +2,39 @@ from django.contrib import admin
 from .models import Truck, Driver, Job, AuditLog
 
 
+from django.utils.html import format_html
+
+
 @admin.register(Truck)
 class TruckAdmin(admin.ModelAdmin):
-    list_display = ('registration_no', 'capacity', 'status')
+    list_display = ('registration_no', 'capacity', 'status', 'photo_preview')
     list_filter = ('status',)
     search_fields = ('registration_no',)
     search_help_text = 'Search by registration number'
+    fields = ('registration_no', 'capacity', 'status', 'photo')
     list_per_page = 25
+
+    def photo_preview(self, obj):
+        if obj.photo:
+            return format_html('<img src="{}" style="height: 35px; width: 35px; object-fit: cover; border-radius: 4px;" loading="lazy" />', obj.photo.url)
+        return "No photo"
+    photo_preview.short_description = "Photo"
 
 
 @admin.register(Driver)
 class DriverAdmin(admin.ModelAdmin):
-    list_display = ('name', 'license_no', 'phone_no')
-    search_fields = ('name', 'license_no')
-    search_help_text = 'Search by driver name or license number'
+    list_display = ('name', 'license_no', 'phone_no', 'user', 'photo_preview')
+    list_filter = ('user__is_active',)
+    search_fields = ('name', 'license_no', 'phone_no', 'user__username')
+    search_help_text = 'Search by driver name, license number, phone, or linked username'
+    fields = ('name', 'license_no', 'phone_no', 'user', 'photo')
     list_per_page = 25
+
+    def photo_preview(self, obj):
+        if obj.photo:
+            return format_html('<img src="{}" style="height: 35px; width: 35px; object-fit: cover; border-radius: 4px;" loading="lazy" />', obj.photo.url)
+        return "No photo"
+    photo_preview.short_description = "Photo"
 
 
 @admin.register(Job)

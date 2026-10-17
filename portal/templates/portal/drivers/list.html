@@ -15,7 +15,7 @@
       <table class="min-w-full divide-y divide-gray-200">
       <thead class="bg-gray-50">
         <tr>
-          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Photo</th>
           <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
           <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">License No.</th>
           <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
@@ -26,7 +26,17 @@
       <tbody class="bg-white divide-y divide-gray-200">
         {% for driver in page_obj %}
         <tr class="hover:bg-gray-50">
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ driver.id }}</td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            {% if driver.photo %}
+              <img src="{{ driver.photo.url }}" alt="{{ driver.name }}" class="h-10 w-10 rounded-full object-cover shadow-sm border border-gray-200" loading="lazy">
+            {% else %}
+              <div class="h-10 w-10 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400">
+                <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              </div>
+            {% endif %}
+          </td>
           <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ driver.name }}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ driver.license_no }}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ driver.phone_no }}</td>

@@ -25,6 +25,16 @@ class TruckOut(Schema):
     registration_no: str
     capacity: Decimal
     status: str
+    photo_url: str | None = None
+
+    @staticmethod
+    def resolve_photo_url(obj):
+        if getattr(obj, 'photo', None):
+            try:
+                return obj.photo.url
+            except Exception:
+                return None
+        return None
 
 
 class DriverIn(Schema):
@@ -41,12 +51,34 @@ class DriverPatch(Schema):
     phone_no: Annotated[str, Field(pattern=r'^\+?[0-9\s\-]+$')] | None = None
 
 
+class DriverMePatch(Schema):
+    """Payload schema for driver self-service update."""
+    phone_no: Annotated[str, Field(pattern=r'^\+?[0-9\s\-]+$')] | None = None
+    name: str | None = None
+    license_no: str | None = None
+
+
 class DriverOut(Schema):
     """Response schema representing a driver."""
     id: int
     name: str
     license_no: str
     phone_no: str
+    photo_url: str | None = None
+    user_id: int | None = None
+
+    @staticmethod
+    def resolve_photo_url(obj):
+        if getattr(obj, 'photo', None):
+            try:
+                return obj.photo.url
+            except Exception:
+                return None
+        return None
+
+    @staticmethod
+    def resolve_user_id(obj):
+        return obj.user_id if getattr(obj, 'user', None) else None
 
 
 class JobIn(Schema):
