@@ -39,7 +39,7 @@ raw_allowed_hosts = os.environ.get('ALLOWED_HOSTS', '')
 if raw_allowed_hosts:
     ALLOWED_HOSTS = [host.strip() for host in raw_allowed_hosts.split(',') if host.strip()]
 else:
-    ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'haulagetrucks.lol', 'www.haulagetrucks.lol']
 
 if '.vercel.app' not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append('.vercel.app')
